@@ -17,6 +17,7 @@
     x-on:keydown.escape.window="handleEscape"
     x-on:resize.window="handleResize"
 >
+    @include('partials.brij-loader')
     <div class="b360-shell">
         @include('builder360.classic.partials.sidebar', ['shell' => $shell])
         <button type="button" class="b360-nav-backdrop" x-on:click="closeNavigation" aria-label="Close navigation" tabindex="-1"></button>

@@ -344,10 +344,6 @@
             <div class="b360-brand-title">Builder360</div>
             <div class="b360-brand-subtitle">ERP · CRM</div>
         </div>
-        {{--
-            FIX: use Alpine method, never `window.innerWidth` inside x-on:click.
-            toggleSidebar() is defined in the builderShell Alpine component.
-        --}}
         <button
             class="b360-collapse-btn"
             id="b360CollapseBtn"

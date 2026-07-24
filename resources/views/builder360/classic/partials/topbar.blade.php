@@ -657,9 +657,7 @@
 
   </div>
 
-  <div class="b360-topbar-actions">
-
-    {{-- Project context switcher --}}
+  {{-- <div class="b360-topbar-actions">
     @if ($shell->canSwitchProjects && count($shell->projects) > 0)
       <form
         method="POST"
@@ -685,7 +683,7 @@
         <span class="b360-dot"></span>
         {{ $shell->activeProjectLabel }}
       </span>
-    @endif
+    @endif --}}
 
     {{-- Role context switcher --}}
     @if ($shell->canSwitchRoles && count($shell->roles) > 1)

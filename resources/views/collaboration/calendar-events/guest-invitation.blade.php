@@ -3,14 +3,15 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Calendar Invitation - {{ $attendee->event->title }}</title>
+    <title>BRIJ Group — Calendar Invitation - {{ $attendee->event->title }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        
         body {
             background-color: #F8FAFC;
             color: #0F172A;
@@ -20,6 +21,8 @@
             min-height: 100vh;
             padding: 24px;
         }
+
+        /* Guest Card Layout */
         .guest-card {
             background: #FFFFFF;
             border: 1px solid #E2E8F2;
@@ -173,6 +176,9 @@
     </style>
 </head>
 <body>
+    @include('partials.brij-loader')
+
+    <!-- Calendar Invitation Card -->
     <main class="guest-card">
         <div class="guest-header">
             <div class="guest-header-badge">
@@ -256,6 +262,13 @@
     </main>
 
     <script>
+        function showBrijLoader() {
+            const loader = document.getElementById('brijLoaderScreen');
+            if (loader) {
+                loader.classList.remove('fade-out');
+            }
+        }
+
         function showModalAlert(options) {
             if (typeof Swal !== 'undefined') {
                 return Swal.fire(options);
@@ -264,6 +277,13 @@
                 const isConfirmed = confirm((options.title || '') + '\n\n' + (options.text || ''));
                 resolve({ isConfirmed: isConfirmed });
             });
+        }
+
+        function redirectToBrij() {
+            showBrijLoader();
+            setTimeout(function() {
+                window.location.href = 'https://brijgroup.in';
+            }, 1200);
         }
 
         function submitResponse(choice) {
@@ -286,6 +306,7 @@
                     cancelButtonText: 'Cancel'
                 }).then((result) => {
                     if (result.isConfirmed) {
+                        showBrijLoader();
                         form.submit();
                     }
                 });
@@ -301,6 +322,7 @@
                     cancelButtonText: 'Cancel'
                 }).then((result) => {
                     if (result.isConfirmed) {
+                        showBrijLoader();
                         form.submit();
                     }
                 });
@@ -309,28 +331,30 @@
 
         @if($attendee->response !== 'pending' || session('status'))
             document.addEventListener('DOMContentLoaded', function() {
-                const response = "{{ $attendee->response }}";
-                if (response === 'accepted') {
-                    showModalAlert({
-                        title: 'Invitation Accepted!',
-                        text: 'Your response is recorded as Accepted. An email notification has been sent to the organizer.',
-                        icon: 'success',
-                        confirmButtonColor: '#22C55E',
-                        confirmButtonText: 'Awesome!'
-                    }).then(function() {
-                        window.location.href = 'https://brijgroup.in';
-                    });
-                } else if (response === 'declined') {
-                    showModalAlert({
-                        title: 'Invitation Declined',
-                        text: 'Your response is recorded as Declined. The organizer has been notified.',
-                        icon: 'info',
-                        confirmButtonColor: '#EF4444',
-                        confirmButtonText: 'Close'
-                    }).then(function() {
-                        window.location.href = 'https://brijgroup.in';
-                    });
-                }
+                setTimeout(function() {
+                    const response = "{{ $attendee->response }}";
+                    if (response === 'accepted') {
+                        showModalAlert({
+                            title: 'Invitation Accepted!',
+                            text: 'Your response is recorded as Accepted. An email notification has been sent to the organizer.',
+                            icon: 'success',
+                            confirmButtonColor: '#22C55E',
+                            confirmButtonText: 'Awesome!'
+                        }).then(function() {
+                            redirectToBrij();
+                        });
+                    } else if (response === 'declined') {
+                        showModalAlert({
+                            title: 'Invitation Declined',
+                            text: 'Your response is recorded as Declined. The organizer has been notified.',
+                            icon: 'info',
+                            confirmButtonColor: '#EF4444',
+                            confirmButtonText: 'Close'
+                        }).then(function() {
+                            redirectToBrij();
+                        });
+                    }
+                }, 1600);
             });
         @endif
     </script>

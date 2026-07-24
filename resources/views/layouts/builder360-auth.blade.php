@@ -9,6 +9,7 @@
     @stack('styles')
 </head>
 <body class="b360-classic b360-auth-body">
+    @include('partials.brij-loader')
     @yield('content')
     @stack('scripts')
 </body>
