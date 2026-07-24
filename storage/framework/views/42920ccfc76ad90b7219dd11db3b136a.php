@@ -1,6 +1,4 @@
-@extends('layouts.builder360-classic')
-
-@php
+<?php
     $membership = $selectedConversation?->activeMembers?->firstWhere('user_id', auth()->id());
     $canPost = $selectedConversation && ($membership?->can_post ?? false) && ($chatOptions['can_post'] ?? false);
     $allowedTypes = collect($conversationTypes)->filter(function ($label, $type) use ($chatOptions) {
@@ -20,9 +18,9 @@
     $activeView = $filters['view'] ?? 'all';
     $selectedDisplayTitle = $selectedConversation?->displayTitleFor(auth()->user());
     $selectedAvatarUser = $selectedConversation?->avatarUserFor(auth()->user());
-@endphp
+?>
 
-@section('title', 'Chat Connect | Builder360')
+<?php $__env->startSection('title', 'Chat Connect | Builder360'); ?>
 <style>
     /*
         ═══════════════════════════════════════════════════════════════
@@ -337,26 +335,26 @@
         .b360-chat-member-picker {overflow: auto !important;height: 250px !important;}
         [hidden], .b360-chat-member-option[hidden], [data-mention-option][hidden], [data-conversation-row][hidden], [data-people-option][hidden] { display: none !important; }
 </style>
-@section('content')
+<?php $__env->startSection('content'); ?>
     <section
-        class="b360-collaboration-screen b360-chat-screen {{ $selectedConversation ? 'has-conversation' : 'no-conversation' }}"
+        class="b360-collaboration-screen b360-chat-screen <?php echo e($selectedConversation ? 'has-conversation' : 'no-conversation'); ?>"
         x-data="chatRealtime"
-        data-conversation-id="{{ $selectedConversation?->id ?? '' }}"
-        data-message-count="{{ $chatMessages->count() }}"
-        data-latest-message-id="{{ $chatMessages->last()?->id ?? '' }}"
-        data-messages-url="{{ $selectedConversation ? route('collaboration.chat.conversations.messages.index', $selectedConversation) : '' }}"
-        data-timeline-url="{{ $selectedConversation ? route('collaboration.chat.conversations.timeline', $selectedConversation) : '' }}"
-        data-conversations-url="{{ route('collaboration.chat.conversations.index', array_merge($filterQuery, ['conversation_id' => $selectedConversation?->id])) }}"
-        data-sidebar-url="{{ route('collaboration.chat.sidebar', array_merge($filterQuery, ['conversation_id' => $selectedConversation?->id])) }}"
-        data-read-url="{{ $selectedConversation ? route('collaboration.chat.conversations.read', $selectedConversation) : '' }}"
-        data-user-id="{{ auth()->id() }}"
-        data-mention-count="{{ $selectedConversation?->activeMembers?->where('user_id', '!=', auth()->id())->count() ?? 0 }}"
-        data-selected-unread="{{ (int) ($selectedConversation?->unread_count ?? 0) }}"
-        data-realtime-enabled="{{ data_get($chatOptions, 'reverb.enabled') ? '1' : '0' }}"
-        data-reverb-key="{{ data_get($chatOptions, 'reverb.key') }}"
-        data-reverb-host="{{ data_get($chatOptions, 'reverb.host') }}"
-        data-reverb-port="{{ data_get($chatOptions, 'reverb.port') }}"
-        data-reverb-scheme="{{ data_get($chatOptions, 'reverb.scheme') }}"
+        data-conversation-id="<?php echo e($selectedConversation?->id ?? ''); ?>"
+        data-message-count="<?php echo e($chatMessages->count()); ?>"
+        data-latest-message-id="<?php echo e($chatMessages->last()?->id ?? ''); ?>"
+        data-messages-url="<?php echo e($selectedConversation ? route('collaboration.chat.conversations.messages.index', $selectedConversation) : ''); ?>"
+        data-timeline-url="<?php echo e($selectedConversation ? route('collaboration.chat.conversations.timeline', $selectedConversation) : ''); ?>"
+        data-conversations-url="<?php echo e(route('collaboration.chat.conversations.index', array_merge($filterQuery, ['conversation_id' => $selectedConversation?->id]))); ?>"
+        data-sidebar-url="<?php echo e(route('collaboration.chat.sidebar', array_merge($filterQuery, ['conversation_id' => $selectedConversation?->id]))); ?>"
+        data-read-url="<?php echo e($selectedConversation ? route('collaboration.chat.conversations.read', $selectedConversation) : ''); ?>"
+        data-user-id="<?php echo e(auth()->id()); ?>"
+        data-mention-count="<?php echo e($selectedConversation?->activeMembers?->where('user_id', '!=', auth()->id())->count() ?? 0); ?>"
+        data-selected-unread="<?php echo e((int) ($selectedConversation?->unread_count ?? 0)); ?>"
+        data-realtime-enabled="<?php echo e(data_get($chatOptions, 'reverb.enabled') ? '1' : '0'); ?>"
+        data-reverb-key="<?php echo e(data_get($chatOptions, 'reverb.key')); ?>"
+        data-reverb-host="<?php echo e(data_get($chatOptions, 'reverb.host')); ?>"
+        data-reverb-port="<?php echo e(data_get($chatOptions, 'reverb.port')); ?>"
+        data-reverb-scheme="<?php echo e(data_get($chatOptions, 'reverb.scheme')); ?>"
     >
         <aside class="b360-collab-rail b360-chat-rail" aria-label="Conversations">
             <header class="b360-collab-rail-head">
@@ -364,133 +362,153 @@
                     <span class="b360-collab-logo" aria-hidden="true"><i class="fa-regular fa-comment"></i></span>
                     <h1>Chat Connect</h1>
                 </div>
-                @if ($canCreateChat && $allowedTypes->isNotEmpty())
-                    <details class="b360-collab-create" x-data="peopleFilter" data-initial-type="{{ old('type', 'direct_message') }}" data-people-count="{{ $users->count() }}" @if ($errors->hasAny(['type', 'title', 'project_id', 'member_user_ids', 'member_user_ids.*', 'body'])) open @endif>
+                <?php if($canCreateChat && $allowedTypes->isNotEmpty()): ?>
+                    <details class="b360-collab-create" x-data="peopleFilter" data-initial-type="<?php echo e(old('type', 'direct_message')); ?>" data-people-count="<?php echo e($users->count()); ?>" <?php if($errors->hasAny(['type', 'title', 'project_id', 'member_user_ids', 'member_user_ids.*', 'body'])): ?> open <?php endif; ?>>
                         <summary class="b360-collab-icon-btn" aria-label="New conversation"><i class="fa-solid fa-plus"></i></summary>
                         <div class="b360-collab-popover b360-chat-create-panel" role="dialog" aria-modal="true" aria-labelledby="new-conversation-title">
                             <div class="b360-popover-head">
                                 <div><h2 id="new-conversation-title">New conversation</h2><p>Start a direct message, group, or work channel.</p></div>
                                 <button type="button" class="b360-chat-create-close" x-on:click="closePeoplePanel" aria-label="Close new conversation"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
                             </div>
-                            <form method="POST" action="{{ route('collaboration.chat.conversations.store') }}" class="b360-chat-form">
-                                @csrf
-                                @if ($errors->hasAny(['type', 'title', 'project_id', 'member_user_ids', 'member_user_ids.*', 'body']))
-                                    <div class="b360-chat-create-errors" role="alert"><strong>Please review the conversation details.</strong><ul>@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
-                                @endif
+                            <form method="POST" action="<?php echo e(route('collaboration.chat.conversations.store')); ?>" class="b360-chat-form">
+                                <?php echo csrf_field(); ?>
+                                <?php if($errors->hasAny(['type', 'title', 'project_id', 'member_user_ids', 'member_user_ids.*', 'body'])): ?>
+                                    <div class="b360-chat-create-errors" role="alert"><strong>Please review the conversation details.</strong><ul><?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><li><?php echo e($error); ?></li><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?></ul></div>
+                                <?php endif; ?>
                                 <label><span>Conversation type</span><select name="type" x-model="conversationType" x-on:change="changeConversationType" required>
-                                    @foreach ($allowedTypes as $value => $label)
-                                        <option value="{{ $value }}" @selected(old('type', 'direct_message') === $value)>{{ $label }}</option>
-                                    @endforeach
+                                    <?php $__currentLoopData = $allowedTypes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $value => $label): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <option value="<?php echo e($value); ?>" <?php if(old('type', 'direct_message') === $value): echo 'selected'; endif; ?>><?php echo e($label); ?></option>
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                 </select></label>
-                                <label x-show="requiresTitle" x-cloak><span>Conversation title</span><input name="title" maxlength="160" value="{{ old('title') }}" placeholder="Example: Finance handover" x-bind:required="requiresTitle"></label>
+                                <label x-show="requiresTitle" x-cloak><span>Conversation title</span><input name="title" maxlength="160" value="<?php echo e(old('title')); ?>" placeholder="Example: Finance handover" x-bind:required="requiresTitle"></label>
                                 <label x-show="requiresProject" x-cloak><span>Project</span><select name="project_id" x-bind:required="requiresProject"><option value="">Select project</option>
-                                    @foreach ($projects as $project)
-                                        <option value="{{ $project->id }}" @selected((string) old('project_id') === (string) $project->id)>{{ $project->code }} · {{ $project->name }}</option>
-                                    @endforeach
+                                    <?php $__currentLoopData = $projects; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $project): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <option value="<?php echo e($project->id); ?>" <?php if((string) old('project_id') === (string) $project->id): echo 'selected'; endif; ?>><?php echo e($project->code); ?> · <?php echo e($project->name); ?></option>
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                 </select></label>
                                 <label class="b360-chat-member-search"><span>Find internal employees</span><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input type="search" x-model.debounce.150ms="peopleQuery" placeholder="Search name, email or role"></label>
                                 <section class="b360-chat-member-picker" aria-labelledby="chat-member-label">
                                     <div class="b360-chat-member-picker-head"><div><span id="chat-member-label" x-text="memberFieldLabel"></span><small x-text="selectionHelp"></small></div><span class="b360-chat-member-count" x-text="selectedPeopleCount"></span></div>
                                     <div class="b360-chat-member-options">
-                                    @foreach ($users as $user)
+                                    <?php $__currentLoopData = $users; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $user): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                         <label
                                             class="b360-chat-member-option"
                                             data-people-option
-                                            data-search="{{ str($user->name.' '.$user->email.' '.($user->role?->name ?? ''))->lower() }}"
+                                            data-search="<?php echo e(str($user->name.' '.$user->email.' '.($user->role?->name ?? ''))->lower()); ?>"
                                         >
                                             <input
                                                 type="checkbox"
                                                 name="member_user_ids[]"
-                                                value="{{ $user->id }}"
+                                                value="<?php echo e($user->id); ?>"
                                                 x-on:change="togglePerson"
-                                                @checked(in_array((string) $user->id, array_map('strval', old('member_user_ids', [])), true))
+                                                <?php if(in_array((string) $user->id, array_map('strval', old('member_user_ids', [])), true)): echo 'checked'; endif; ?>
                                             >
                                     
                                             <span>
-                                                {{ $user->name }}
-                                                <small>{{ $user->role?->name ?? $user->email }}</small>
+                                                <?php echo e($user->name); ?>
+
+                                                <small><?php echo e($user->role?->name ?? $user->email); ?></small>
                                             </span>
                                     
                                             <i class="fa-solid fa-check" aria-hidden="true"></i>
                                         </label>
-                                    @endforeach
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                         <p class="b360-chat-member-empty" x-show="noPeopleMatches" x-cloak>No matching employees.</p>
                                     </div>
                                 </section>
-                                <label><span>First message <small>(optional)</small></span><textarea name="body" maxlength="10000" placeholder="Write the first message">{{ old('body') }}</textarea></label>
+                                <label><span>First message <small>(optional)</small></span><textarea name="body" maxlength="10000" placeholder="Write the first message"><?php echo e(old('body')); ?></textarea></label>
                                 <div class="b360-chat-create-actions"><button type="button" class="b360-secondary-btn" x-on:click="closePeoplePanel">Cancel</button><button class="b360-primary-btn" type="submit" x-bind:disabled="!canCreateConversation">Create conversation</button></div>
                             </form>
                         </div>
                     </details>
-                @endif
+                <?php endif; ?>
             </header>
 
-            <form method="GET" action="{{ route('collaboration.chat.index') }}" class="b360-collab-search {{ filled($filters['q'] ?? null) ? 'has-query' : '' }}" role="search">
+            <form method="GET" action="<?php echo e(route('collaboration.chat.index')); ?>" class="b360-collab-search <?php echo e(filled($filters['q'] ?? null) ? 'has-query' : ''); ?>" role="search">
                 <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
                 <input
                     type="search"
                     name="q"
                     x-ref="sidebarSearch"
-                    value="{{ $filters['q'] ?? '' }}"
+                    value="<?php echo e($filters['q'] ?? ''); ?>"
                     placeholder="Search messages, people, files..."
                     aria-label="Search conversations"
                     x-on:input.debounce.100ms="filterConversations"
                 >
-                @if (filled($filters['q'] ?? null))
-                    <a class="b360-chat-search-clear" href="{{ route('collaboration.chat.index', $clearSearchQuery) }}" aria-label="Clear conversation search"><i class="fa-solid fa-xmark" aria-hidden="true"></i></a>
-                @endif
+                <?php if(filled($filters['q'] ?? null)): ?>
+                    <a class="b360-chat-search-clear" href="<?php echo e(route('collaboration.chat.index', $clearSearchQuery)); ?>" aria-label="Clear conversation search"><i class="fa-solid fa-xmark" aria-hidden="true"></i></a>
+                <?php endif; ?>
                 <button type="submit" aria-label="Search conversations"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
-                @foreach (collect($filterQuery)->only(['type', 'view', 'project_id', 'status']) as $name => $value)
-                    <input type="hidden" name="{{ $name }}" value="{{ $value }}">
-                @endforeach
+                <?php $__currentLoopData = collect($filterQuery)->only(['type', 'view', 'project_id', 'status']); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $name => $value): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                    <input type="hidden" name="<?php echo e($name); ?>" value="<?php echo e($value); ?>">
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
             </form>
 
             <nav class="b360-collab-tabs" aria-label="Conversation filters">
-                <a class="{{ $activeView === 'all' && $activeType === null ? 'is-active' : '' }}" href="{{ route('collaboration.chat.index', $searchBaseQuery) }}">All</a>
-                <a class="{{ $activeView === 'unread' ? 'is-active' : '' }}" href="{{ route('collaboration.chat.index', array_merge($searchBaseQuery, ['view' => 'unread'])) }}">Unread</a>
-                <a class="{{ $activeView === 'mentions' ? 'is-active' : '' }}" href="{{ route('collaboration.chat.index', array_merge($searchBaseQuery, ['view' => 'mentions'])) }}">Mentions</a>
-                <a class="{{ $activeView === 'dms' || $activeType === 'direct_message' ? 'is-active' : '' }}" href="{{ route('collaboration.chat.index', array_merge($searchBaseQuery, ['view' => 'dms'])) }}">DMs</a>
-                <a class="{{ $activeType === 'group_chat' ? 'is-active' : '' }}" href="{{ route('collaboration.chat.index', array_merge($searchBaseQuery, ['type' => 'group_chat'])) }}">Groups</a>
-                <a class="{{ $activeView === 'channels' ? 'is-active' : '' }}" href="{{ route('collaboration.chat.index', array_merge($searchBaseQuery, ['view' => 'channels'])) }}">Channels</a>
+                <a class="<?php echo e($activeView === 'all' && $activeType === null ? 'is-active' : ''); ?>" href="<?php echo e(route('collaboration.chat.index', $searchBaseQuery)); ?>">All</a>
+                <a class="<?php echo e($activeView === 'unread' ? 'is-active' : ''); ?>" href="<?php echo e(route('collaboration.chat.index', array_merge($searchBaseQuery, ['view' => 'unread']))); ?>">Unread</a>
+                <a class="<?php echo e($activeView === 'mentions' ? 'is-active' : ''); ?>" href="<?php echo e(route('collaboration.chat.index', array_merge($searchBaseQuery, ['view' => 'mentions']))); ?>">Mentions</a>
+                <a class="<?php echo e($activeView === 'dms' || $activeType === 'direct_message' ? 'is-active' : ''); ?>" href="<?php echo e(route('collaboration.chat.index', array_merge($searchBaseQuery, ['view' => 'dms']))); ?>">DMs</a>
+                <a class="<?php echo e($activeType === 'group_chat' ? 'is-active' : ''); ?>" href="<?php echo e(route('collaboration.chat.index', array_merge($searchBaseQuery, ['type' => 'group_chat']))); ?>">Groups</a>
+                <a class="<?php echo e($activeView === 'channels' ? 'is-active' : ''); ?>" href="<?php echo e(route('collaboration.chat.index', array_merge($searchBaseQuery, ['view' => 'channels']))); ?>">Channels</a>
             </nav>
 
             <nav class="b360-collab-list b360-conversation-list" aria-label="Available conversations" x-ref="conversationList">
-                @include('collaboration.chat.partials.conversation-list', [
+                <?php echo $__env->make('collaboration.chat.partials.conversation-list', [
                     'conversations' => $conversations,
                     'selectedConversation' => $selectedConversation,
                     'filterQuery' => $filterQuery,
-                ])
+                ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
             </nav>
         </aside>
 
         <section class="b360-collab-main b360-chat-main" aria-label="Selected conversation">
-            @if ($selectedConversation)
+            <?php if($selectedConversation): ?>
                 <header class="b360-thread-head">
-                    <a class="b360-chat-mobile-back" href="{{ route('collaboration.chat.index', array_merge($filterQuery, ['list_only' => 1])) }}" aria-label="Back to conversations"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i></a>
-                    <x-ui.user-avatar :user="$selectedAvatarUser" :label="$selectedDisplayTitle" class="b360-thread-avatar" />
+                    <a class="b360-chat-mobile-back" href="<?php echo e(route('collaboration.chat.index', array_merge($filterQuery, ['list_only' => 1]))); ?>" aria-label="Back to conversations"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i></a>
+                    <?php if (isset($component)) { $__componentOriginal2252ef3298868bc9de4c534a2a83a2a2 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal2252ef3298868bc9de4c534a2a83a2a2 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.ui.user-avatar','data' => ['user' => $selectedAvatarUser,'label' => $selectedDisplayTitle,'class' => 'b360-thread-avatar']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('ui.user-avatar'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['user' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($selectedAvatarUser),'label' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($selectedDisplayTitle),'class' => 'b360-thread-avatar']); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal2252ef3298868bc9de4c534a2a83a2a2)): ?>
+<?php $attributes = $__attributesOriginal2252ef3298868bc9de4c534a2a83a2a2; ?>
+<?php unset($__attributesOriginal2252ef3298868bc9de4c534a2a83a2a2); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal2252ef3298868bc9de4c534a2a83a2a2)): ?>
+<?php $component = $__componentOriginal2252ef3298868bc9de4c534a2a83a2a2; ?>
+<?php unset($__componentOriginal2252ef3298868bc9de4c534a2a83a2a2); ?>
+<?php endif; ?>
                     <div class="b360-thread-title">
-                        <h2>{{ $selectedDisplayTitle }}</h2>
-                        <p>{{ str($selectedConversation->type)->headline() }} · {{ $selectedConversation->activeMembers?->count() ?? 0 }} members
-                            @if($selectedConversation->project) · {{ $selectedConversation->project->name }} @endif
+                        <h2><?php echo e($selectedDisplayTitle); ?></h2>
+                        <p><?php echo e(str($selectedConversation->type)->headline()); ?> · <?php echo e($selectedConversation->activeMembers?->count() ?? 0); ?> members
+                            <?php if($selectedConversation->project): ?> · <?php echo e($selectedConversation->project->name); ?> <?php endif; ?>
                         </p>
                         <small class="b360-chat-connection" x-text="connectionLabel" x-bind:class="connectionClass"></small>
                     </div>
                     <div class="b360-thread-actions">
-                        <form method="POST" action="{{ route('collaboration.chat.conversations.read', $selectedConversation) }}">@csrf @method('PATCH')<button type="submit" title="Mark conversation read" aria-label="Mark conversation read"><i class="fa-solid fa-check"></i></button></form>
-                        @can('archive', $selectedConversation)<form method="POST" action="{{ route('collaboration.chat.conversations.archive', $selectedConversation) }}">@csrf @method('PATCH')<button type="submit" title="Archive conversation" aria-label="Archive conversation"><i class="fa-solid fa-box-archive"></i></button></form>@endcan
+                        <form method="POST" action="<?php echo e(route('collaboration.chat.conversations.read', $selectedConversation)); ?>"><?php echo csrf_field(); ?> <?php echo method_field('PATCH'); ?><button type="submit" title="Mark conversation read" aria-label="Mark conversation read"><i class="fa-solid fa-check"></i></button></form>
+                        <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('archive', $selectedConversation)): ?><form method="POST" action="<?php echo e(route('collaboration.chat.conversations.archive', $selectedConversation)); ?>"><?php echo csrf_field(); ?> <?php echo method_field('PATCH'); ?><button type="submit" title="Archive conversation" aria-label="Archive conversation"><i class="fa-solid fa-box-archive"></i></button></form><?php endif; ?>
                     </div>
                 </header>
 
-                @include('collaboration.chat.partials.timeline', [
+                <?php echo $__env->make('collaboration.chat.partials.timeline', [
                     'selectedConversation' => $selectedConversation,
                     'chatMessages' => $chatMessages,
-                ])
+                ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
-                @if ($canPost)
+                <?php if($canPost): ?>
                     <footer class="b360-thread-composer">
                         <div class="b360-composer-stack">
-                            <form method="POST" action="{{ route('collaboration.chat.conversations.messages.store', $selectedConversation) }}" enctype="multipart/form-data" class="b360-composer-box" x-ref="composer" x-on:submit.prevent="sendMessage">
-                                @csrf
+                            <form method="POST" action="<?php echo e(route('collaboration.chat.conversations.messages.store', $selectedConversation)); ?>" enctype="multipart/form-data" class="b360-composer-box" x-ref="composer" x-on:submit.prevent="sendMessage">
+                                <?php echo csrf_field(); ?>
                                 <textarea name="body" maxlength="10000" placeholder="Write a message…" aria-label="Message" x-on:input="handleComposerInput" x-on:keydown.enter="handleComposerKeydown" x-bind:disabled="busy"></textarea>
                                 <div class="b360-chat-attachment-selection" x-show="hasSelectedAttachments" x-cloak aria-label="Selected attachments">
                                     <template x-for="attachment in selectedAttachments" x-bind:key="attachment.key">
@@ -502,14 +520,14 @@
                                     </template>
                                 </div>
                                 <div class="b360-composer-tools">
-                                    @if ($chatOptions['can_upload'] ?? false)
+                                    <?php if($chatOptions['can_upload'] ?? false): ?>
                                         <label class="b360-composer-tool" title="Attach files" aria-label="Attach files"><i class="fa-solid fa-paperclip"></i><input type="file" name="attachments[]" multiple x-on:change="selectAttachments"></label>
-                                    @endif
+                                    <?php endif; ?>
                                     <select name="parent_message_id" hidden tabindex="-1" aria-hidden="true">
                                         <option value="">New message</option>
-                                        @foreach ($chatMessages->take(-20) as $parentMessage)
-                                            <option value="{{ $parentMessage->id }}">{{ $parentMessage->message_number }} · {{ str($parentMessage->body)->squish()->limit(50) }}</option>
-                                        @endforeach
+                                        <?php $__currentLoopData = $chatMessages->take(-20); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $parentMessage): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                            <option value="<?php echo e($parentMessage->id); ?>"><?php echo e($parentMessage->message_number); ?> · <?php echo e(str($parentMessage->body)->squish()->limit(50)); ?></option>
+                                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                     </select>
                                     <input type="hidden" name="priority" value="normal">
                                     <details class="b360-composer-mentions" name="composer-panels" x-ref="mentionMenu">
@@ -518,15 +536,34 @@
                                             <header><div><strong>Mention a member</strong><small>Only members of this conversation are available.</small></div><button type="button" x-on:click="closeComposerPanel" aria-label="Close member mentions"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></header>
                                             <label><span>Find conversation members</span><input type="search" x-ref="mentionSearch" placeholder="Search name, email or role" x-on:input="filterMentionOptions"></label>
                                             <div class="b360-mention-options">
-                                                @foreach ($selectedConversation->activeMembers as $member)
-                                                    @if ($member->user && (int) $member->user_id !== (int) auth()->id())
-                                                        <label data-mention-option data-search="{{ str($member->user->name.' '.$member->user->email.' '.($member->user->role?->name ?? ''))->lower() }}">
-                                                            <input type="checkbox" name="metadata[mentions][]" value="{{ $member->user_id }}" data-mention-name="{{ $member->user->name }}" x-on:change="toggleMention">
-                                                            <x-ui.user-avatar :user="$member->user" :label="$member->user->name" class="b360-mention-avatar" />
-                                                            <span><strong>{{ $member->user->name }}</strong><small>{{ $member->user->role?->name ?? $member->user->email }}</small></span>
+                                                <?php $__currentLoopData = $selectedConversation->activeMembers; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $member): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                                    <?php if($member->user && (int) $member->user_id !== (int) auth()->id()): ?>
+                                                        <label data-mention-option data-search="<?php echo e(str($member->user->name.' '.$member->user->email.' '.($member->user->role?->name ?? ''))->lower()); ?>">
+                                                            <input type="checkbox" name="metadata[mentions][]" value="<?php echo e($member->user_id); ?>" data-mention-name="<?php echo e($member->user->name); ?>" x-on:change="toggleMention">
+                                                            <?php if (isset($component)) { $__componentOriginal2252ef3298868bc9de4c534a2a83a2a2 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal2252ef3298868bc9de4c534a2a83a2a2 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.ui.user-avatar','data' => ['user' => $member->user,'label' => $member->user->name,'class' => 'b360-mention-avatar']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('ui.user-avatar'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['user' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($member->user),'label' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($member->user->name),'class' => 'b360-mention-avatar']); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal2252ef3298868bc9de4c534a2a83a2a2)): ?>
+<?php $attributes = $__attributesOriginal2252ef3298868bc9de4c534a2a83a2a2; ?>
+<?php unset($__attributesOriginal2252ef3298868bc9de4c534a2a83a2a2); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal2252ef3298868bc9de4c534a2a83a2a2)): ?>
+<?php $component = $__componentOriginal2252ef3298868bc9de4c534a2a83a2a2; ?>
+<?php unset($__componentOriginal2252ef3298868bc9de4c534a2a83a2a2); ?>
+<?php endif; ?>
+                                                            <span><strong><?php echo e($member->user->name); ?></strong><small><?php echo e($member->user->role?->name ?? $member->user->email); ?></small></span>
                                                         </label>
-                                                    @endif
-                                                @endforeach
+                                                    <?php endif; ?>
+                                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                                 <p x-show="noMentionMatches" x-cloak>No matching members.</p>
                                             </div>
                                         </div>
@@ -535,17 +572,17 @@
                                     <button class="b360-composer-send" type="submit" aria-label="Send message" x-bind:disabled="busy"><i class="fa-solid fa-paper-plane"></i></button>
                                 </div>
                             </form>
-                            @if ($chatOptions['can_create_poll'] ?? false)
-                                <details class="b360-chat-poll-create" name="composer-panels" x-data="pollComposer" @if ($errors->hasAny(['question', 'options', 'options.*', 'allows_multiple', 'closes_at'])) open @endif>
+                            <?php if($chatOptions['can_create_poll'] ?? false): ?>
+                                <details class="b360-chat-poll-create" name="composer-panels" x-data="pollComposer" <?php if($errors->hasAny(['question', 'options', 'options.*', 'allows_multiple', 'closes_at'])): ?> open <?php endif; ?>>
                                     <summary title="Create poll" aria-label="Create poll"><i class="fa-solid fa-chart-simple"></i></summary>
-                                    <form method="POST" action="{{ route('collaboration.chat.conversations.polls.store', $selectedConversation) }}" class="b360-chat-form b360-poll-dialog" role="dialog" aria-modal="true" aria-labelledby="create-poll-title">
-                                        @csrf
+                                    <form method="POST" action="<?php echo e(route('collaboration.chat.conversations.polls.store', $selectedConversation)); ?>" class="b360-chat-form b360-poll-dialog" role="dialog" aria-modal="true" aria-labelledby="create-poll-title">
+                                        <?php echo csrf_field(); ?>
                                         <header class="b360-poll-dialog-head"><div><h2 id="create-poll-title">Create poll</h2><p>Ask conversation members to vote.</p></div><button type="button" x-on:click="closePollPanel" aria-label="Close create poll"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></header>
                                         <div class="b360-poll-dialog-body">
-                                            @if ($errors->hasAny(['question', 'options', 'options.*', 'allows_multiple', 'closes_at']))
-                                                <div class="b360-chat-create-errors" role="alert"><strong>Please review the poll details.</strong><ul>@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
-                                            @endif
-                                            <label><span>Question</span><input name="question" maxlength="255" value="{{ old('question') }}" placeholder="What should the team decide?" required></label>
+                                            <?php if($errors->hasAny(['question', 'options', 'options.*', 'allows_multiple', 'closes_at'])): ?>
+                                                <div class="b360-chat-create-errors" role="alert"><strong>Please review the poll details.</strong><ul><?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><li><?php echo e($error); ?></li><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?></ul></div>
+                                            <?php endif; ?>
+                                            <label><span>Question</span><input name="question" maxlength="255" value="<?php echo e(old('question')); ?>" placeholder="What should the team decide?" required></label>
                                             <section class="b360-poll-option-builder" aria-labelledby="poll-options-label">
                                                 <div class="b360-poll-option-head"><div><strong id="poll-options-label">Answer options</strong><small x-text="pollOptionCountLabel"></small></div><button type="button" x-on:click="addPollOption" x-bind:disabled="!canAddPollOption"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add option</button></div>
                                                 <div class="b360-poll-option-list">
@@ -555,24 +592,26 @@
                                                 </div>
                                             </section>
                                             <div class="b360-poll-settings">
-                                                <label class="b360-check-row"><input type="checkbox" name="allows_multiple" value="1" @checked(old('allows_multiple'))><span>Allow multiple selections</span></label>
-                                                <label><span>Close date <small>(optional)</small></span><input type="datetime-local" name="closes_at" value="{{ old('closes_at') }}"></label>
+                                                <label class="b360-check-row"><input type="checkbox" name="allows_multiple" value="1" <?php if(old('allows_multiple')): echo 'checked'; endif; ?>><span>Allow multiple selections</span></label>
+                                                <label><span>Close date <small>(optional)</small></span><input type="datetime-local" name="closes_at" value="<?php echo e(old('closes_at')); ?>"></label>
                                             </div>
                                         </div>
                                         <footer class="b360-poll-dialog-actions"><button type="button" class="b360-secondary-btn" x-on:click="closePollPanel">Cancel</button><button class="b360-primary-btn" type="submit">Create poll</button></footer>
                                     </form>
-                                    <script type="application/json" x-ref="pollSeed">@json(old('options', ['', '']))</script>
+                                    <script type="application/json" x-ref="pollSeed"><?php echo json_encode(old('options', ['', ''])) ?></script>
                                 </details>
-                            @endif
+                            <?php endif; ?>
                         </div>
                         <p class="b360-chat-composer-status" x-show="statusMessage" x-text="statusMessage" x-bind:class="statusClass" x-cloak></p>
                     </footer>
-                @else
+                <?php else: ?>
                     <div class="b360-chat-readonly">This conversation is read-only for your current role.</div>
-                @endif
-            @else
+                <?php endif; ?>
+            <?php else: ?>
                 <div class="b360-collab-empty b360-collab-empty-large"><span class="b360-empty-icon">◯</span><strong>No conversation selected</strong><span>Choose a conversation from the left panel or start a new internal conversation.</span></div>
-            @endif
+            <?php endif; ?>
         </section>
     </section>
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.builder360-classic', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH D:\builder360\resources\views/collaboration/chat/index.blade.php ENDPATH**/ ?>

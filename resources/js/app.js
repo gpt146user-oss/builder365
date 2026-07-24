@@ -665,8 +665,10 @@ Alpine.data('peopleFilter', () => ({
 
         this.$root.querySelectorAll('[data-people-option]').forEach((option) => {
             const searchable = option.dataset.search || option.textContent || '';
-            option.hidden = query !== '' && ! searchable.toLowerCase().includes(query);
-            if (! option.hidden) {
+            const matches = query === '' || searchable.toLowerCase().includes(query);
+            option.hidden = ! matches;
+            option.style.display = matches ? '' : 'none';
+            if (matches) {
                 visible += 1;
             }
         });
@@ -1521,6 +1523,32 @@ Alpine.data('chatRealtime', () => ({
         }
 
         this.enablePollingFallback();
+    },
+
+    filterConversations(event) {
+        const query = (event?.target?.value ?? this.$refs.sidebarSearch?.value ?? '').trim().toLowerCase();
+        const rows = this.$root.querySelectorAll('[data-conversation-row]');
+
+        rows.forEach((row) => {
+            const searchable = row.dataset.search || row.textContent || '';
+            const matches = query === '' || searchable.toLowerCase().includes(query);
+            row.hidden = ! matches;
+            row.style.display = matches ? '' : 'none';
+        });
+
+        this.$root.querySelectorAll('.cc-section-head').forEach((head) => {
+            let next = head.nextElementSibling;
+            let hasVisibleRow = false;
+            while (next && ! next.classList.contains('cc-section-head')) {
+                if (next.hasAttribute('data-conversation-row') && ! next.hidden && next.style.display !== 'none') {
+                    hasVisibleRow = true;
+                    break;
+                }
+                next = next.nextElementSibling;
+            }
+            head.hidden = query !== '' && ! hasVisibleRow;
+            head.style.display = head.hidden ? 'none' : '';
+        });
     },
 
     csrfToken() {

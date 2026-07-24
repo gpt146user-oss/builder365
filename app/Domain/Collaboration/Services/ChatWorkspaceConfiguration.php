@@ -54,6 +54,7 @@ final class ChatWorkspaceConfiguration
     public function users(User $user): \Illuminate\Support\Collection
     {
         return $this->workspace->internalUsers($user)
+            ->reject(fn (User $option): bool => (int) $option->id === (int) $user->id)
             ->filter(fn (User $option): bool => $this->access->canView($option))
             ->values();
     }

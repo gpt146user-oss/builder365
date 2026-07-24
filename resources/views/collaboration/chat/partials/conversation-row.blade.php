@@ -21,6 +21,7 @@
     href="{{ $url }}"
     data-conversation-row
     data-conversation-id="{{ $conversation->id }}"
+    data-search="{{ str($displayTitle.' '.$preview.' '.($conversation->type ?? ''))->lower() }}"
     class="cc-conv-row {{ $isSelected ? 'is-active' : '' }}"
     @if ($isSelected) aria-current="page" @endif
 >
