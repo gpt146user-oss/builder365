@@ -89,6 +89,8 @@ class StoreChatConversationRequest extends FormRequest
                     $validator->errors()->add('member_user_ids', 'All selected members must exist.');
                 }
 
+                $externalRoleSlugs = ['buyer', 'channel_partner', 'executive_partner_broker'];
+
                 foreach ($members as $member) {
                     if ((int) $member->id === (int) $actor->id) {
                         $validator->errors()->add('member_user_ids', 'You are already included as the conversation owner.');
@@ -98,7 +100,10 @@ class StoreChatConversationRequest extends FormRequest
                         $validator->errors()->add('member_user_ids', 'All members must be active internal users.');
                     }
 
-                    if ($member->hasPermission('buyer.view') || $member->hasPermission('partner.portal')) {
+                    $memberRoleSlug = $member->role?->slug
+                        ?? str($member->role?->name ?? '')->lower()->replaceMatches('/[^a-z0-9]+/', '_')->trim('_')->toString();
+
+                    if (in_array($memberRoleSlug, $externalRoleSlugs, true)) {
                         $validator->errors()->add('member_user_ids', 'Chat Connect is limited to internal team members.');
                     }
 
