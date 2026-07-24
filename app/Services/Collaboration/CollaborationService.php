@@ -23,6 +23,7 @@ use App\Models\WorkTaskComment;
 use App\Models\WorkTaskSubtask;
 use App\Models\WorkTaskTimeLog;
 use App\Models\WorkTaskTransferRequest;
+use App\Models\WorkTaskCompletionApproval;
 use App\Domain\Collaboration\Services\CalendarLifecycleManager;
 use App\Services\Audit\AuditLogger;
 use App\Services\Notifications\NotificationCenterService;
@@ -714,13 +715,21 @@ class CollaborationService
             }
 
             $status = $data['status'];
+
+            if ($task->status === 'waiting_approval' && in_array($status, ['in_progress', 'open'], true)) {
+                WorkTaskCompletionApproval::query()
+                    ->where('work_task_id', $task->id)
+                    ->where('status', 'pending')
+                    ->update(['status' => 'rejected', 'decision_note' => 'Withdrawn by user to resume work']);
+            }
+
             $this->taskTransitions->assertAllowed($task, $status, $actor);
             $taskSetting = $this->taskSettings->forCompany($task->company_id);
             $completionApprovalRequired = $status === 'completed'
                 && (bool) data_get($taskSetting, 'require_completion_approval', false)
                 && ! $actor->hasPermission('collaboration.manage');
             if ($completionApprovalRequired) {
-                $this->completionApprovals->request($task, $actor, $data['note'], $request);
+                $this->completionApprovals->request($task, $actor, $data['note'] ?? 'Completion approval requested', $request);
                 return $task->fresh()->load($this->taskRelations());
             }
             $history = $task->workflow_history ?? [];

@@ -543,13 +543,27 @@ class CollaborationController extends Controller
 
     public function updateTaskStatus(UpdateWorkTaskStatusRequest $request, WorkTask $workTask, ChangeWorkTaskStatus $action): WorkTaskResource|RedirectResponse
     {
+        $oldStatus = $workTask->status;
         $task = $action->execute($workTask, $this->command($request));
 
         if (! $request->wantsJson()) {
-            return back()->with('status', "Task {$task->task_number} status updated successfully.");
+            if ($task->status === 'waiting_approval') {
+                $msg = ($oldStatus === 'waiting_approval')
+                    ? "Task {$task->task_number} is already pending Director completion approval."
+                    : "Task {$task->task_number} submitted for Director completion approval (Status: Waiting Approval).";
+            } else {
+                $readableStatus = str($task->status)->replace('_', ' ')->title();
+                $msg = "Task {$task->task_number} status updated to {$readableStatus}.";
+            }
+
+            return back()->with('status', $msg);
         }
 
-        return (new WorkTaskResource($task))->additional(['message' => 'Task status updated successfully.']);
+        $jsonMsg = $task->status === 'waiting_approval'
+            ? 'Task submitted for Director completion approval.'
+            : 'Task status updated successfully.';
+
+        return (new WorkTaskResource($task))->additional(['message' => $jsonMsg]);
     }
 
     public function updateTaskWatcher(UpdateWorkTaskWatcherRequest $request, WorkTask $workTask, ChangeWorkTaskWatcher $action): WorkTaskResource|RedirectResponse
