@@ -6147,7 +6147,6 @@ class Builder360Bootstrap
             'conversation_types' => [
                 ['value' => 'direct_message', 'label' => 'Direct Message'],
                 ['value' => 'group_chat', 'label' => 'Group Chat'],
-                ['value' => 'department_channel', 'label' => 'Department Channel'],
                 ['value' => 'project_channel', 'label' => 'Project Channel'],
                 ['value' => 'unit_conversation', 'label' => 'Unit Conversation'],
                 ['value' => 'lead_conversation', 'label' => 'Lead Conversation'],

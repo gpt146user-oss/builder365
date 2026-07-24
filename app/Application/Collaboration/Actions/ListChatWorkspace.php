@@ -50,7 +50,6 @@ final class ListChatWorkspace
         return [
             'direct_message' => 'Direct Message',
             'group_chat' => 'Group Chat',
-            'department_channel' => 'Department Channel',
             'project_channel' => 'Project Channel',
             'unit_conversation' => 'Unit Conversation',
             'lead_conversation' => 'Lead Conversation',

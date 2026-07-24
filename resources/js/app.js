@@ -557,7 +557,7 @@ Alpine.data('unifiedMailboxComposer', () => ({
     togglePerson(event) { const row = event.currentTarget.closest('[data-mail-person]'); if (event.currentTarget.checked) this.addPerson(row, row.dataset.selectedType || 'to'); else this.selectedPeople = this.selectedPeople.filter((person) => person.id !== Number(row.dataset.personId)); this.queueAutosave(); },
     removePerson(event) { const id = Number(event.currentTarget.dataset.personId); this.selectedPeople = this.selectedPeople.filter((person) => person.id !== id); const row = this.$root.querySelector(`[data-mail-person][data-person-id="${id}"]`); row?.querySelector('input[type="checkbox"]')?.removeAttribute('checked'); if (row?.querySelector('input[type="checkbox"]')) row.querySelector('input[type="checkbox"]').checked = false; this.queueAutosave(); },
     changeRecipientType(event) { const id = Number(event.currentTarget.dataset.personId); const person = this.selectedPeople.find((item) => item.id === id); if (person) person.type = event.currentTarget.value; this.queueAutosave(); },
-    applyPeopleFilter() { const query = this.peopleQuery.trim().toLowerCase(); let visible = 0; this.$root.querySelectorAll('[data-mail-person]').forEach((row) => { row.hidden = query !== '' && !(row.dataset.personSearch || '').includes(query); if (!row.hidden) visible++; }); this.visiblePeopleCount = visible; },
+    applyPeopleFilter() { const query = this.peopleQuery.trim().toLowerCase(); let visible = 0; this.$root.querySelectorAll('[data-mail-person]').forEach((row) => { const matches = query === '' || (row.dataset.personSearch || '').includes(query); row.hidden = ! matches; row.style.display = matches ? '' : 'none'; if (matches) visible++; }); this.visiblePeopleCount = visible; },
     selectAttachments(event) { this.setFiles(Array.from(event.currentTarget.files || [])); },
     dropAttachments(event) { this.dragging = false; const incoming = Array.from(event.dataTransfer?.files || []); const transfer = new DataTransfer(); [...this.selectedAttachments.map((item) => item.file), ...incoming].slice(0, 10).forEach((file) => transfer.items.add(file)); this.$refs.attachments.files = transfer.files; this.setFiles(Array.from(transfer.files)); },
     setFiles(files) { this.selectedAttachments.forEach((item) => { if (item.preview) URL.revokeObjectURL(item.preview); }); this.selectedAttachments = files.map((file, index) => ({ file, name: file.name, sizeLabel: this.fileSize(file.size), preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : null, key: `${file.name}-${file.size}-${file.lastModified}-${index}` })); this.queueAutosave(); },
@@ -1368,7 +1368,9 @@ Alpine.data('peopleSearch', () => ({
         this.query = String(event.currentTarget.value || '').trim().toLowerCase();
         this.$root.querySelectorAll('[data-person-search]').forEach((row) => {
             const haystack = String(row.dataset.personSearch || '').toLowerCase();
-            row.hidden = this.query !== '' && ! haystack.includes(this.query);
+            const matches = this.query === '' || haystack.includes(this.query);
+            row.hidden = ! matches;
+            row.style.display = matches ? '' : 'none';
         });
     },
 }));
@@ -1396,7 +1398,9 @@ Alpine.data('taskMentionComposer', () => ({
     },
     filter() {
         this.$root.querySelectorAll('[data-task-mention-option]').forEach((row) => {
-            row.hidden = this.query !== '' && ! String(row.dataset.personSearch || '').includes(this.query);
+            const matches = this.query === '' || String(row.dataset.personSearch || '').includes(this.query);
+            row.hidden = ! matches;
+            row.style.display = matches ? '' : 'none';
         });
     },
     select(event) {
@@ -1704,6 +1708,7 @@ Alpine.data('chatRealtime', () => ({
         options.forEach((option) => {
             const matches = ! query || (option.dataset.search || '').includes(query);
             option.hidden = ! matches;
+            option.style.display = matches ? '' : 'none';
             if (matches) {
                 visible += 1;
             }
