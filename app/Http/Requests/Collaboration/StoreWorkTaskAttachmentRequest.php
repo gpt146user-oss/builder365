@@ -18,9 +18,21 @@ class StoreWorkTaskAttachmentRequest extends FormRequest
     {
         return [
             'attachment' => [
-                'required', 'file', 'max:25600',
-                'mimetypes:image/jpeg,image/png,image/webp,image/gif,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain,text/csv,application/zip,application/x-zip-compressed',
+                'required',
+                'file',
+                'max:5120', // 5 MB Max
+                'mimetypes:image/jpeg,image/png,image/webp,image/gif,image/bmp,image/svg+xml,image/tiff,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain,text/csv,application/zip,application/x-zip-compressed',
             ],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'attachment.required' => 'Please select a file to upload.',
+            'attachment.file' => 'The uploaded item must be a valid file.',
+            'attachment.max' => 'File size limit exceeded. Only files up to 5 MB are allowed.',
+            'attachment.mimetypes' => 'Video files are not allowed. Allowed formats: Images (JPG, PNG, WEBP, GIF, SVG), PDF, Office Documents, CSV, TXT, and ZIP (Max 5 MB).',
         ];
     }
 }

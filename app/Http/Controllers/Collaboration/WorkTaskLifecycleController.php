@@ -58,7 +58,11 @@ class WorkTaskLifecycleController extends Controller
     {
         abort_unless((int) $workTaskAttachment->work_task_id === (int) $workTask->id && $request->user()?->can('view', $workTask), 403);
         abort_if(in_array($workTaskAttachment->scan_status, ['blocked', 'failed'], true), 422, 'This attachment is not available.');
-        abort_unless(str_starts_with($workTaskAttachment->mime_type, 'image/') || $workTaskAttachment->mime_type === 'application/pdf', 415);
+        abort_unless(
+            str_starts_with($workTaskAttachment->mime_type, 'image/')
+            || $workTaskAttachment->mime_type === 'application/pdf',
+            415
+        );
 
         return Storage::disk($workTaskAttachment->disk)->response(
             $workTaskAttachment->path,
