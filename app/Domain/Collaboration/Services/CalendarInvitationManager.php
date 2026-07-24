@@ -4,11 +4,13 @@ namespace App\Domain\Collaboration\Services;
 
 use App\Events\Calendar\CalendarEventChanged;
 use App\Mail\CalendarInvitationMail;
+use App\Mail\CalendarResponseNotificationMail;
 use App\Models\CalendarEvent;
 use App\Models\CalendarEventAttendee;
 use App\Models\User;
 use App\Services\Notifications\NotificationCenterService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
@@ -81,11 +83,29 @@ final class CalendarInvitationManager
     private function notifyOrganizer(CalendarEvent $event, CalendarEventAttendee $attendee, ?User $actor): void
     {
         $event->loadMissing('organizer');
-        if (! $event->organizer) return;
-        $this->notifications->sendToUser($event->organizer, [
-            'category'=>'calendar','severity'=>'info','title'=>$attendee->name.' '.$attendee->response.' '.$event->title,
-            'body'=>'Invitation response updated.','action_url'=>route('collaboration.calendar-events.index',['event_id'=>$event->id],false),
-            'payload'=>['calendar_event_id'=>$event->id,'response'=>$attendee->response],
-        ], $actor, $event);
+
+        if ($event->organizer) {
+            $this->notifications->sendToUser($event->organizer, [
+                'category' => 'calendar', 'severity' => 'info', 'title' => $attendee->name.' '.$attendee->response.' '.$event->title,
+                'body' => 'Invitation response updated.', 'action_url' => route('collaboration.calendar-events.index', ['event_id' => $event->id], false),
+                'payload' => ['calendar_event_id' => $event->id, 'response' => $attendee->response],
+            ], $actor, $event);
+
+            if (filter_var($event->organizer->email, FILTER_VALIDATE_EMAIL)) {
+                try {
+                    Mail::to($event->organizer->email)->send(new CalendarResponseNotificationMail($event, $attendee, 'organizer'));
+                } catch (\Throwable $e) {
+                    Log::error('Failed sending RSVP update email to organizer: '.$e->getMessage());
+                }
+            }
+        }
+
+        if (filter_var($attendee->email, FILTER_VALIDATE_EMAIL)) {
+            try {
+                Mail::to($attendee->email)->send(new CalendarResponseNotificationMail($event, $attendee, 'attendee'));
+            } catch (\Throwable $e) {
+                Log::error('Failed sending RSVP confirmation email to attendee: '.$e->getMessage());
+            }
+        }
     }
 }

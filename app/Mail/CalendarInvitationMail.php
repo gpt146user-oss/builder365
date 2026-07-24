@@ -7,6 +7,7 @@ use App\Models\CalendarEventAttendee;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -17,7 +18,13 @@ final class CalendarInvitationMail extends Mailable
 {
     use Queueable, SerializesModels;
     public function __construct(public CalendarEvent $event, public CalendarEventAttendee $attendee, public string $change = 'request') {}
-    public function envelope(): Envelope { return new Envelope(subject: ($this->change === 'cancel' ? 'Cancelled: ' : 'Invitation: ').$this->event->title); }
+    public function envelope(): Envelope
+    {
+        return new Envelope(
+            from: new Address(env('CALENDAR_MAIL_FROM_ADDRESS', 'Calender@brijgroup.in'), env('CALENDAR_MAIL_FROM_NAME', 'Builder360 Calendar')),
+            subject: ($this->change === 'cancel' ? 'Cancelled: ' : 'Invitation: ').$this->event->title
+        );
+    }
     public function content(): Content { return new Content(view: 'mail.calendar-invitation', with: ['responseUrl'=>URL::temporarySignedRoute('calendar.guest-invitations.show', now()->addDays(30), ['calendarEventAttendee'=>$this->attendee->id])]); }
     public function attachments(): array { return [Attachment::fromData(fn () => $this->ics(), 'event-'.$this->event->event_number.'.ics')->withMime('text/calendar')]; }
     private function ics(): string

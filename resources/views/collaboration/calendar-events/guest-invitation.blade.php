@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
         body {
@@ -108,18 +109,18 @@
         }
         .rsvp-actions {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
         }
         .rsvp-btn {
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             align-items: center;
             justify-content: center;
-            gap: 6px;
-            padding: 12px 8px;
+            gap: 8px;
+            padding: 14px 16px;
             border-radius: 10px;
-            font-size: 12px;
+            font-size: 14px;
             font-weight: 600;
             border: 1px solid #CBD5E1;
             background: #FFFFFF;
@@ -128,24 +129,38 @@
             transition: all .15s ease;
         }
         .rsvp-btn:hover {
-            border-color: #2563EB;
-            color: #2563EB;
-            background: #F8FAFC;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
-        .rsvp-btn.is-active-accepted {
+        .rsvp-btn-accept {
+            border-color: #22C55E;
+            color: #15803D;
+            background: #F0FDF4;
+        }
+        .rsvp-btn-accept:hover {
             background: #22C55E;
             color: #FFFFFF;
-            border-color: #22C55E;
         }
-        .rsvp-btn.is-active-tentative {
-            background: #EAB308;
-            color: #FFFFFF;
-            border-color: #EAB308;
+        .rsvp-btn-decline {
+            border-color: #EF4444;
+            color: #B91C1C;
+            background: #FEF2F2;
         }
-        .rsvp-btn.is-active-declined {
+        .rsvp-btn-decline:hover {
             background: #EF4444;
             color: #FFFFFF;
-            border-color: #EF4444;
+        }
+        .rsvp-btn.is-active-declined {
+            background: #EF4444 !important;
+            color: #FFFFFF !important;
+            border-color: #EF4444 !important;
+        }
+        .rsvp-btn:disabled, .rsvp-btn[disabled] {
+            opacity: 0.55 !important;
+            cursor: not-allowed !important;
+            pointer-events: none !important;
+            transform: none !important;
+            box-shadow: none !important;
         }
         .guest-footer {
             padding: 16px 28px;
@@ -199,31 +214,36 @@
                 </div>
             </div>
 
-            @if(session('status'))
-                <div class="guest-status-banner status-{{ $attendee->response }}">
+            <div class="guest-status-banner status-{{ $attendee->response }}">
+                @if($attendee->response === 'accepted')
                     <i class="fa-solid fa-circle-check"></i>
-                    <span>{{ session('status') }}</span>
-                </div>
-            @else
-                <div class="guest-status-banner status-{{ $attendee->response }}">
-                    <i class="fa-solid fa-info-circle"></i>
-                    <span>Current RSVP Status: <strong>{{ ucfirst($attendee->response) }}</strong></span>
-                </div>
-            @endif
+                    <span>Your RSVP Response: <strong>Accepted</strong></span>
+                @elseif($attendee->response === 'declined')
+                    <i class="fa-solid fa-circle-xmark"></i>
+                    <span>Your RSVP Response: <strong>Declined</strong></span>
+                @else
+                    <i class="fa-solid fa-clock"></i>
+                    <span>Your RSVP Response: <strong>Pending</strong></span>
+                @endif
+            </div>
 
             <div>
-                <div class="rsvp-label">Update Your Response</div>
-                <form method="POST" action="{{ request()->fullUrl() }}">
+                <div class="rsvp-label">
+                    @if($attendee->response !== 'pending')
+                        Response Recorded (Locked)
+                    @else
+                        Update Your Response
+                    @endif
+                </div>
+                <form id="rsvpForm" method="POST" action="{{ request()->fullUrl() }}">
                     @csrf
+                    <input type="hidden" name="response" id="responseValue" value="">
                     <div class="rsvp-actions">
-                        <button name="response" value="accepted" type="submit" class="rsvp-btn {{ $attendee->response === 'accepted' ? 'is-active-accepted' : '' }}">
+                        <button type="button" @disabled($attendee->response !== 'pending') onclick="submitResponse('accepted')" class="rsvp-btn rsvp-btn-accept {{ $attendee->response === 'accepted' ? 'is-active-accepted' : '' }}">
                             <i class="fa-solid fa-check"></i> Accept
                         </button>
-                        <button name="response" value="tentative" type="submit" class="rsvp-btn {{ $attendee->response === 'tentative' ? 'is-active-tentative' : '' }}">
-                            <i class="fa-solid fa-question"></i> Tentative
-                        </button>
-                        <button name="response" value="declined" type="submit" class="rsvp-btn {{ $attendee->response === 'declined' ? 'is-active-declined' : '' }}">
-                            <i class="fa-solid fa-xmark" aria-hidden="true"></i> Decline
+                        <button type="button" @disabled($attendee->response !== 'pending') onclick="submitResponse('declined')" class="rsvp-btn rsvp-btn-decline {{ $attendee->response === 'declined' ? 'is-active-declined' : '' }}">
+                            <i class="fa-solid fa-xmark"></i> Reject / Decline
                         </button>
                     </div>
                 </form>
@@ -234,5 +254,85 @@
             Powered by Builder360 ERP CRM · External Guest RSVP Portal
         </div>
     </main>
+
+    <script>
+        function showModalAlert(options) {
+            if (typeof Swal !== 'undefined') {
+                return Swal.fire(options);
+            }
+            return new Promise((resolve) => {
+                const isConfirmed = confirm((options.title || '') + '\n\n' + (options.text || ''));
+                resolve({ isConfirmed: isConfirmed });
+            });
+        }
+
+        function submitResponse(choice) {
+            if ("{{ $attendee->response }}" !== "pending") {
+                return;
+            }
+            const form = document.getElementById('rsvpForm');
+            const input = document.getElementById('responseValue');
+            input.value = choice;
+
+            if (choice === 'accepted') {
+                showModalAlert({
+                    title: 'Accept Invitation?',
+                    text: 'Confirm your acceptance for "{{ addslashes($attendee->event->title) }}".',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#22C55E',
+                    cancelButtonColor: '#94A3B8',
+                    confirmButtonText: 'Yes, Accept',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+            } else if (choice === 'declined') {
+                showModalAlert({
+                    title: 'Decline Invitation?',
+                    text: 'Are you sure you want to decline this calendar invitation?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#EF4444',
+                    cancelButtonColor: '#94A3B8',
+                    confirmButtonText: 'Yes, Decline',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+            }
+        }
+
+        @if($attendee->response !== 'pending' || session('status'))
+            document.addEventListener('DOMContentLoaded', function() {
+                const response = "{{ $attendee->response }}";
+                if (response === 'accepted') {
+                    showModalAlert({
+                        title: 'Invitation Accepted!',
+                        text: 'Your response is recorded as Accepted. An email notification has been sent to the organizer.',
+                        icon: 'success',
+                        confirmButtonColor: '#22C55E',
+                        confirmButtonText: 'Awesome!'
+                    }).then(function() {
+                        window.location.href = 'https://brijgroup.in';
+                    });
+                } else if (response === 'declined') {
+                    showModalAlert({
+                        title: 'Invitation Declined',
+                        text: 'Your response is recorded as Declined. The organizer has been notified.',
+                        icon: 'info',
+                        confirmButtonColor: '#EF4444',
+                        confirmButtonText: 'Close'
+                    }).then(function() {
+                        window.location.href = 'https://brijgroup.in';
+                    });
+                }
+            });
+        @endif
+    </script>
 </body>
 </html>
