@@ -13,7 +13,7 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\URL;
 
-final class CalendarInvitationMail extends Mailable implements ShouldQueue
+final class CalendarInvitationMail extends Mailable
 {
     use Queueable, SerializesModels;
     public function __construct(public CalendarEvent $event, public CalendarEventAttendee $attendee, public string $change = 'request') {}

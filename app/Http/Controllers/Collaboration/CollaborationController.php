@@ -73,6 +73,9 @@ use App\Http\Requests\Collaboration\StoreChatConversationRequest;
 use App\Http\Requests\Collaboration\StoreChatMessageRequest;
 use App\Http\Requests\Collaboration\StoreChatPollRequest;
 use App\Http\Requests\Collaboration\StoreCollaborationMessageRequest;
+use App\Http\Requests\Collaboration\UpdateChatConversationRequest;
+use App\Http\Requests\Collaboration\AddChatConversationMembersRequest;
+use App\Http\Requests\Collaboration\RemoveChatConversationMemberRequest;
 use App\Models\MailboxAccount;
 use App\Models\InternalMailboxDispatch;
 use App\Models\MailboxEmail;
@@ -109,6 +112,7 @@ use App\Models\WorkTask;
 use App\Models\WorkTaskSubtask;
 use App\Models\WorkTaskTransferRequest;
 use App\Services\Collaboration\CollaborationService;
+use App\Services\Collaboration\ChatConnectService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -117,13 +121,14 @@ use Illuminate\View\View;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
 use App\Domain\Collaboration\Services\CalendarInvitationManager;
- 
 
 class CollaborationController extends Controller
 {
-    public function __construct(private readonly CollaborationService $collaborationService, private readonly CalendarInvitationManager $invitations, ) {
-       
-    }
+    public function __construct(
+        private readonly CollaborationService $collaborationService,
+        private readonly ChatConnectService $chatConnectService,
+        private readonly CalendarInvitationManager $invitations,
+    ) {}
 
     public function chat(ChatConversationIndexRequest $request, ListChatWorkspace $action): View
     {
@@ -367,6 +372,54 @@ class CollaborationController extends Controller
             'message' => 'Conversation archived.',
             'archived' => true,
             'archived_at' => $membership->archived_at?->toISOString(),
+        ]);
+    }
+
+    public function updateChatConversation(UpdateChatConversationRequest $request, ChatConversation $chatConversation): JsonResponse|RedirectResponse
+    {
+        $conversation = $this->chatConnectService->updateConversation($chatConversation, $request->validated(), $request->user(), $request);
+
+        if (! $request->wantsJson()) {
+            return redirect()
+                ->route('collaboration.chat.index', ['conversation_id' => $conversation->id])
+                ->with('status', 'Conversation updated successfully.');
+        }
+
+        return response()->json([
+            'message' => 'Conversation updated.',
+            'data' => (new ChatConversationResource($conversation))->resolve($request),
+        ]);
+    }
+
+    public function addChatConversationMembers(AddChatConversationMembersRequest $request, ChatConversation $chatConversation): JsonResponse|RedirectResponse
+    {
+        $members = $this->chatConnectService->addMembers($chatConversation, $request->input('member_user_ids', []), $request->user(), $request);
+
+        if (! $request->wantsJson()) {
+            return redirect()
+                ->route('collaboration.chat.index', ['conversation_id' => $chatConversation->id])
+                ->with('status', 'Members added successfully.');
+        }
+
+        return response()->json([
+            'message' => 'Members added.',
+            'added_count' => $members->count(),
+        ]);
+    }
+
+    public function removeChatConversationMember(RemoveChatConversationMemberRequest $request, ChatConversation $chatConversation, User $user): JsonResponse|RedirectResponse
+    {
+        $this->chatConnectService->removeMember($chatConversation, $user, $request->user(), $request);
+
+        if (! $request->wantsJson()) {
+            return redirect()
+                ->route('collaboration.chat.index', ['conversation_id' => $chatConversation->id])
+                ->with('status', 'Member removed successfully.');
+        }
+
+        return response()->json([
+            'message' => 'Member removed.',
+            'removed' => true,
         ]);
     }
 

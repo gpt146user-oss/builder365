@@ -333,9 +333,28 @@
         margin-bottom: 4px;
         }
         .cc-empty strong { font-size: 13px; font-weight: 600; color: #0F172A; }
-        .cc-empty span   { font-size: 12px; color: #94A3B8; max-width: 200px; line-height: 1.5; }
-        .b360-chat-member-picker {overflow: auto !important;height: 250px !important;}
+        .b360-chat-member-picker { overflow-y: auto !important; max-height: 260px !important; min-height: 80px; }
         [hidden], .b360-chat-member-option[hidden], [data-mention-option][hidden], [data-conversation-row][hidden], [data-people-option][hidden] { display: none !important; }
+        .b360-group-manage-details[open] .b360-chat-create-panel {
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            position: fixed !important;
+            z-index: 100 !important;
+            width: min(560px, calc(100vw - 32px)) !important;
+            max-height: min(640px, calc(100vh - 48px)) !important;
+            border-radius: 16px !important;
+            box-shadow: 0 20px 60px rgba(15, 23, 42, 0.22) !important;
+            overflow: hidden !important;
+            display: flex !important;
+            flex-direction: column !important;
+            background: #fff !important;
+        }
+        .b360-group-manage-details .b360-chat-member-option {
+            grid-template-columns: auto minmax(0, 1fr) auto !important;
+            box-sizing: border-box !important;
+            width: 100% !important;
+        }
 </style>
 @section('content')
     <section
@@ -476,8 +495,157 @@
                         <small class="b360-chat-connection" x-text="connectionLabel" x-bind:class="connectionClass"></small>
                     </div>
                     <div class="b360-thread-actions">
-                        <form method="POST" action="{{ route('collaboration.chat.conversations.read', $selectedConversation) }}">@csrf @method('PATCH')<button type="submit" title="Mark conversation read" aria-label="Mark conversation read"><i class="fa-solid fa-check"></i></button></form>
-                        @can('archive', $selectedConversation)<form method="POST" action="{{ route('collaboration.chat.conversations.archive', $selectedConversation) }}">@csrf @method('PATCH')<button type="submit" title="Archive conversation" aria-label="Archive conversation"><i class="fa-solid fa-box-archive"></i></button></form>@endcan
+                        @if($selectedConversation->type !== 'direct_message')
+                            <details class="b360-collab-create b360-group-manage-details" x-data="{ groupTab: 'members' }">
+                                <summary class="b360-collab-icon-btn" title="Group settings & members" aria-label="Group settings & members">
+                                    <i class="fa-solid fa-users-gear"></i>
+                                </summary>
+                                <div class="b360-collab-popover b360-chat-create-panel" role="dialog" aria-modal="true" aria-labelledby="manage-group-title" style="width: min(580px, calc(100vw - 32px)); max-height: min(680px, calc(100vh - 40px)); overflow: hidden; display: flex; flex-direction: column;">
+                                    
+                                    <div class="b360-popover-head" style="padding: 18px 24px; border-bottom: 1px solid #E2E8F2; flex-shrink: 0; background: #fff;">
+                                        <div>
+                                            <h2 id="manage-group-title" style="font-size: 18px; font-weight: 700; color: #0F172A; margin: 0;">{{ $selectedDisplayTitle }}</h2>
+                                            <p style="font-size: 12px; color: #64748B; margin: 3px 0 0;">{{ str($selectedConversation->type)->headline() }} · Manage settings & members</p>
+                                        </div>
+                                        <button type="button" class="b360-chat-create-close" x-on:click="$el.closest('details').removeAttribute('open')" aria-label="Close group settings"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+                                    </div>
+
+                                    <div style="flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; box-sizing: border-box;">
+                                        
+                                        <nav style="display: flex; gap: 8px; border-bottom: 1px solid #E2E8F2; padding-bottom: 12px; flex-shrink: 0;" aria-label="Group tabs">
+                                            <button
+                                                type="button"
+                                                class="cc-rail-tab"
+                                                x-bind:class="{ 'is-active': groupTab === 'members' }"
+                                                x-on:click="groupTab = 'members'"
+                                                style="cursor: pointer;"
+                                            >
+                                                <i class="fa-solid fa-users" style="font-size: 11px;"></i>
+                                                
+                                            </button>
+
+                                            @can('manageMembers', $selectedConversation)
+                                                @if($selectedConversation->type !== 'direct_message')
+                                                    <button
+                                                        type="button"
+                                                        class="cc-rail-tab"
+                                                        x-bind:class="{ 'is-active': groupTab === 'add' }"
+                                                        x-on:click="groupTab = 'add'"
+                                                        style="cursor: pointer;"
+                                                    >
+                                                        <i class="fa-solid fa-user-plus" style="font-size: 11px;"></i>
+                                                
+                                                        
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        class="cc-rail-tab"
+                                                        x-bind:class="{ 'is-active': groupTab === 'edit' }"
+                                                        x-on:click="groupTab = 'edit'"
+                                                        style="cursor: pointer;"
+                                                    >
+                                                        <i class="fa-solid fa-pen-to-square" style="font-size: 11px;"></i>
+                                                    
+                                                    </button>
+                                                @endif
+                                            @endcan
+                                        </nav>
+
+                                        <div x-show="groupTab === 'members'" style="display: flex; flex-direction: column; gap: 10px;">
+                                            <div class="b360-chat-member-picker" style="max-height: 320px; overflow-y: auto; border: 1px solid #E2E8F2; border-radius: 12px; background: #fff;">
+                                                @foreach($selectedConversation->activeMembers as $member)
+                                                    @if($member->user)
+                                                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid #F1F5F9; gap: 12px;">
+                                                            <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
+                                                                <x-ui.user-avatar :user="$member->user" :label="$member->user->name" style="width: 34px; height: 34px; font-size: 12px; flex-shrink: 0;" />
+                                                                <div style="min-width: 0; flex: 1;">
+                                                                    <strong style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #0F172A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                                                        {{ $member->user->name }}
+                                                                        @if((int)$selectedConversation->owner_user_id === (int)$member->user_id)
+                                                                            <span style="font-size: 10px; font-weight: 700; background: #EEF4FF; color: #2563EB; padding: 2px 7px; border-radius: 10px; flex-shrink: 0;">Owner</span>
+                                                                        @endif
+                                                                        @if((int)$member->user_id === (int)auth()->id())
+                                                                            <span style="font-size: 10px; font-weight: 700; background: #F1F5F9; color: #64748B; padding: 2px 7px; border-radius: 10px; flex-shrink: 0;">You</span>
+                                                                        @endif
+                                                                    </strong>
+                                                                    <small style="display: block; color: #64748B; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $member->user->role?->name ?? $member->user->email }}</small>
+                                                                </div>
+                                                            </div>
+                                                            @if($selectedConversation->type !== 'direct_message')
+                                                                @if((int)$member->user_id === (int)auth()->id() && (int)$selectedConversation->owner_user_id !== (int)auth()->id())
+                                                                
+                                                                @elseif((int)$selectedConversation->owner_user_id !== (int)$member->user_id && auth()->user()->can('manageMembers', $selectedConversation))
+                                                                
+                                                                @endif
+                                                            @endif
+                                                        </div>
+                                                    @endif
+                                                @endforeach
+                                            </div>
+                                        </div>
+
+                                        @can('manageMembers', $selectedConversation)
+                                            @if($selectedConversation->type !== 'direct_message')
+                                                <div x-show="groupTab === 'add'" x-cloak x-data="peopleFilter" style="display: flex; flex-direction: column; gap: 12px;">
+                                                    <form method="POST" action="{{ route('collaboration.chat.conversations.members.store', $selectedConversation) }}" style="display: flex; flex-direction: column; gap: 12px;">
+                                                        @csrf
+                                                        @php
+                                                            $existingMemberIds = $selectedConversation->activeMembers->pluck('user_id')->all();
+                                                            $availableAddUsers = $users->reject(fn($u) => in_array($u->id, $existingMemberIds, true));
+                                                        @endphp
+                                                        <div class="b360-chat-member-picker" style="max-height: 240px; overflow-y: auto; border: 1px solid #E2E8F2; border-radius: 12px; background: #fff;">
+                                                            @foreach($availableAddUsers as $user)
+                                                                <label class="b360-chat-member-option" data-people-option data-search="{{ str($user->name.' '.$user->email.' '.($user->role?->name ?? ''))->lower() }}">
+                                                                    <input type="checkbox" name="member_user_ids[]" value="{{ $user->id }}" x-on:change="togglePerson">
+                                                                    <span>
+                                                                        {{ $user->name }}
+                                                                        <small>{{ $user->role?->name ?? $user->email }}</small>
+                                                                    </span>
+                                                                    <i class="fa-solid fa-check" aria-hidden="true"></i>
+                                                                </label>
+                                                            @endforeach
+                                                            @if($availableAddUsers->isEmpty())
+                                                                <p style="padding: 20px; text-align: center; color: #64748B; font-size: 13px; margin: 0;">All internal employees are already members.</p>
+                                                            @endif
+                                                            <p class="b360-chat-member-empty" x-show="noPeopleMatches" x-cloak style="padding: 16px; text-align: center; color: #64748B; font-size: 13px; margin: 0;">No matching employees.</p>
+                                                        </div>
+                                                        <div style="display: flex; justify-content: flex-end; padding-top: 4px;">
+                                                            <button type="submit" class="b360-primary-btn" x-bind:disabled="selectedPeopleCount < 1">
+                                                                <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                                                            </button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+
+                                                <div x-show="groupTab === 'edit'" x-cloak style="display: flex; flex-direction: column; gap: 12px;">
+                                                    <form method="POST" action="{{ route('collaboration.chat.conversations.update', $selectedConversation) }}" class="b360-chat-form" style="gap: 12px;">
+                                                        @csrf @method('PATCH')
+                                                        <label style="display: block;">
+                                                            <span>Group / Channel title *</span>
+                                                            <input type="text" name="title" maxlength="160" required value="{{ old('title', $selectedConversation->title) }}">
+                                                        </label>
+                                                        <label style="display: block;">
+                                                            <span>Description / Purpose <small>(optional)</small></span>
+                                                            <textarea name="description" maxlength="500" placeholder="Purpose of this group or channel" style="min-height: 80px;">{{ old('description', $selectedConversation->description) }}</textarea>
+                                                        </label>
+                                                        <div style="display: flex; justify-content: flex-end; padding-top: 4px;">
+                                                            <button type="submit" class="b360-primary-btn" style="width: 85px;font-size: 15px;text-align: center;">
+                                                            Save
+                                                            </button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            @endif
+                                        @endcan
+                                    </div>
+                                </div>
+                            </details>
+                            <form method="POST" action="{{ route('collaboration.chat.conversations.read', $selectedConversation) }}">@csrf @method('PATCH')<button type="submit" title="Mark conversation read" aria-label="Mark conversation read"><i class="fa-solid fa-check"></i></button></form>
+                            @can('archive', $selectedConversation)
+                                <form method="POST" action="{{ route('collaboration.chat.conversations.archive', $selectedConversation) }}">@csrf @method('PATCH')<button type="submit" title="Archive conversation" aria-label="Archive conversation"><i class="fa-solid fa-box-archive"></i></button>
+                            </form>
+                            @endcan
+                        @endif
                     </div>
                 </header>
 

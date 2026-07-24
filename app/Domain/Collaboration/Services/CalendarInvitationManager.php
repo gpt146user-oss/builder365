@@ -51,11 +51,14 @@ final class CalendarInvitationManager
         $sent = 0;
         $event->loadMissing(['attendeeRecords', 'organizer', 'project']);
     
-        // Loops over all attendees with attendee_type = 'guest'
         foreach ($event->attendeeRecords->where('attendee_type', 'guest') as $attendee) {
-            Mail::to($attendee->email)->queue(new CalendarInvitationMail($event, $attendee, $change));
-            $attendee->forceFill(['last_notified_at' => now()])->save();
-            $sent++;
+            try {
+                Mail::to($attendee->email)->send(new CalendarInvitationMail($event, $attendee, $change));
+                $attendee->forceFill(['last_notified_at' => now()])->save();
+                $sent++;
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Failed sending calendar guest invitation to '.$attendee->email.': '.$e->getMessage());
+            }
         }
         return $sent;
     }

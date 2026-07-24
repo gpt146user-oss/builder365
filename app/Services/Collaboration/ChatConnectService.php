@@ -523,6 +523,134 @@ class ChatConnectService
         return $membership->refresh();
     }
 
+    public function updateConversation(ChatConversation $conversation, array $data, User $actor, ?Request $request = null): ChatConversation
+    {
+        return DB::transaction(function () use ($conversation, $data, $actor, $request): ChatConversation {
+            $this->assertConversationViewable($conversation, $actor);
+
+            if ($conversation->type === 'direct_message') {
+                throw ValidationException::withMessages(['title' => 'Direct messages cannot be edited.']);
+            }
+
+            $membership = $conversation->membershipFor($actor);
+            $canEdit = (int) $conversation->owner_user_id === (int) $actor->id
+                || ($membership !== null && $membership->can_manage_members)
+                || $this->access->can($actor, 'can_manage_members');
+
+            if (! $canEdit) {
+                throw new AuthorizationException('You cannot edit this conversation.');
+            }
+
+            $title = trim((string) ($data['title'] ?? $conversation->title));
+            $description = isset($data['description']) ? trim((string) $data['description']) : $conversation->description;
+
+            if ($title === '') {
+                throw ValidationException::withMessages(['title' => 'A group or channel title is required.']);
+            }
+
+            $conversation->forceFill([
+                'title' => $title,
+                'description' => $description,
+            ])->save();
+
+            $this->auditLogger->record($actor, 'chat.conversation.updated', 'Updated Chat Connect conversation details', $conversation, [
+                'title' => $title,
+                'description' => $description,
+            ], $request);
+
+            return $conversation->refresh();
+        });
+    }
+
+    public function addMembers(ChatConversation $conversation, array $userIds, User $actor, ?Request $request = null): EloquentCollection
+    {
+        return DB::transaction(function () use ($conversation, $userIds, $actor, $request): EloquentCollection {
+            $this->assertConversationViewable($conversation, $actor);
+
+            if ($conversation->type === 'direct_message') {
+                throw ValidationException::withMessages(['member_user_ids' => 'Direct messages cannot have additional members.']);
+            }
+
+            $membership = $conversation->membershipFor($actor);
+            $canAdd = (int) $conversation->owner_user_id === (int) $actor->id
+                || ($membership !== null && $membership->can_manage_members)
+                || $this->access->can($actor, 'can_manage_members');
+
+            if (! $canAdd) {
+                throw new AuthorizationException('You cannot add members to this conversation.');
+            }
+
+            $members = User::query()->with('role')->whereIn('id', $userIds)->get();
+            $this->assertMembersAllowed($members, $actor, $conversation->project);
+
+            foreach ($members as $member) {
+                $existing = ChatConversationMember::query()
+                    ->where('chat_conversation_id', $conversation->id)
+                    ->where('user_id', $member->id)
+                    ->first();
+
+                if ($existing) {
+                    $this->restoreMember($conversation, $member, 'member', false);
+                } else {
+                    $this->attachMember($conversation, $member, 'member', false);
+                }
+            }
+
+            $activeCount = $conversation->activeMembers()->count();
+            $conversation->touch();
+
+            $this->auditLogger->record($actor, 'chat.members.added', 'Added members to Chat Connect conversation', $conversation, [
+                'added_user_ids' => $members->pluck('id')->all(),
+                'member_count' => $activeCount,
+            ], $request);
+
+            return $members;
+        });
+    }
+
+    public function removeMember(ChatConversation $conversation, User $targetUser, User $actor, ?Request $request = null): ChatConversationMember
+    {
+        return DB::transaction(function () use ($conversation, $targetUser, $actor, $request): ChatConversationMember {
+            $this->assertConversationViewable($conversation, $actor);
+
+            if ($conversation->type === 'direct_message') {
+                throw ValidationException::withMessages(['user' => 'Direct message members cannot be removed.']);
+            }
+
+            if ((int) $conversation->owner_user_id === (int) $targetUser->id) {
+                throw ValidationException::withMessages(['user' => 'The conversation owner cannot be removed.']);
+            }
+
+            $isSelf = (int) $targetUser->id === (int) $actor->id;
+            $membership = $conversation->membershipFor($actor);
+            $canRemove = $isSelf
+                || (int) $conversation->owner_user_id === (int) $actor->id
+                || ($membership !== null && $membership->can_manage_members)
+                || $this->access->can($actor, 'can_manage_members');
+
+            if (! $canRemove) {
+                throw new AuthorizationException('You cannot remove members from this conversation.');
+            }
+
+            $targetMembership = $conversation->membershipFor($targetUser);
+            if (! $targetMembership) {
+                throw ValidationException::withMessages(['user' => 'The selected user is not an active member of this conversation.']);
+            }
+
+            $targetMembership->forceFill(['removed_at' => now()])->save();
+
+            $activeCount = $conversation->activeMembers()->count();
+            $conversation->touch();
+
+            $this->auditLogger->record($actor, 'chat.member.removed', 'Removed member from Chat Connect conversation', $conversation, [
+                'removed_user_id' => $targetUser->id,
+                'member_count' => $activeCount,
+            ], $request);
+
+            return $targetMembership->refresh();
+        });
+    }
+
     /**
      * @return EloquentCollection<int, ChatMessage>
      */

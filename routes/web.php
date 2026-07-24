@@ -566,6 +566,9 @@ Route::middleware(['auth', 'account.active', 'verified', 'company.active', 'thro
         Route::patch('/chat/messages/{chatMessage}/reactions', [CollaborationController::class, 'updateChatMessageReaction'])->name('chat.messages.reactions.update');
         Route::patch('/chat/conversations/{chatConversation}/read', [CollaborationController::class, 'markChatConversationRead'])->name('chat.conversations.read');
         Route::patch('/chat/conversations/{chatConversation}/archive', [CollaborationController::class, 'archiveChatConversation'])->name('chat.conversations.archive');
+        Route::patch('/chat/conversations/{chatConversation}', [CollaborationController::class, 'updateChatConversation'])->name('chat.conversations.update');
+        Route::post('/chat/conversations/{chatConversation}/members', [CollaborationController::class, 'addChatConversationMembers'])->name('chat.conversations.members.store');
+        Route::delete('/chat/conversations/{chatConversation}/members/{user}', [CollaborationController::class, 'removeChatConversationMember'])->name('chat.conversations.members.destroy');
         Route::get('/messages', [CollaborationController::class, 'messages'])->name('messages.index');
         Route::get('/messages/export', [CollaborationController::class, 'exportMessages'])->name('messages.export');
         Route::post('/messages', [CollaborationController::class, 'storeMessage'])->name('messages.store');

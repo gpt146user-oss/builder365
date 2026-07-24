@@ -48,13 +48,23 @@ final class CalendarLifecycleManager
     /** @param array<string,mixed> $data */
     private function syncAttendees(CalendarEvent $event, array $data, User $actor): void
     {
-        $internal = collect($event->attendees ?? [])->filter(fn (array $row): bool => ! empty($row['user_id']))->map(fn (array $row): array => [
-            'user_id' => isset($row['user_id']) ? (int) $row['user_id'] : null,
-            'name' => (string) ($row['name'] ?? $row['email'] ?? 'Participant'),
-            'email' => strtolower((string) ($row['email'] ?? '')),
-            'response' => (string) ($row['response'] ?? 'pending'),
-            'attendee_type' => 'internal',
-        ]);
+        $internalUserIds = collect($event->attendees ?? [])->pluck('user_id')->filter()->map(fn ($id) => (int) $id)->unique()->all();
+        $usersById = User::query()->whereIn('id', $internalUserIds)->get()->keyBy('id');
+
+        $internal = collect($event->attendees ?? [])
+            ->filter(fn (array $row): bool => ! empty($row['user_id']))
+            ->map(function (array $row) use ($usersById): array {
+                $userId = (int) $row['user_id'];
+                $user = $usersById->get($userId);
+
+                return [
+                    'user_id' => $userId,
+                    'name' => (string) ($row['name'] ?? $user?->name ?? 'Participant'),
+                    'email' => strtolower((string) ($row['email'] ?? $user?->email ?? '')),
+                    'response' => (string) ($row['response'] ?? 'pending'),
+                    'attendee_type' => 'internal',
+                ];
+            });
 
         $guests = collect($data['guests'] ?? [])->map(fn (array $row): array => [
             'user_id' => null,
