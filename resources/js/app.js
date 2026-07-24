@@ -1464,9 +1464,16 @@ Alpine.data('chatRealtime', () => ({
         const conversationId = Number(this.$root.dataset.conversationId || 0);
         this.mentionMatchCount = Number(this.$root.dataset.mentionCount || 0);
 
+        document.addEventListener('visibilitychange', () => {
+            if (! document.hidden) {
+                this.refreshTimeline(false);
+                this.refreshSidebar();
+            }
+        });
+
         if (! conversationId) {
             this.connectionState = 'periodic';
-            this.startPolling(30000);
+            this.startPolling(1000);
             return;
         }
 
@@ -1508,13 +1515,13 @@ Alpine.data('chatRealtime', () => ({
                 const connection = this.echo.connector.pusher.connection;
                 connection.bind('connected', () => {
                     this.connectionState = 'live';
-                    this.startPolling(60000, true);
+                    this.startPolling(15000, true);
                 });
                 connection.bind('error', () => this.enablePollingFallback());
                 connection.bind('unavailable', () => this.enablePollingFallback());
                 connection.bind('disconnected', () => this.enablePollingFallback());
 
-                this.startPolling(60000);
+                this.startPolling(1000);
 
                 return;
             } catch (_error) {
@@ -1865,10 +1872,10 @@ Alpine.data('chatRealtime', () => ({
 
     enablePollingFallback() {
         this.connectionState = navigator.onLine ? 'periodic' : 'offline';
-        this.startPolling(15000, true);
+        this.startPolling(1000, true);
     },
 
-    startPolling(interval = 15000, restart = false) {
+    startPolling(interval = 1000, restart = false) {
         if (restart && this.pollTimer) {
             window.clearInterval(this.pollTimer);
             this.pollTimer = null;
