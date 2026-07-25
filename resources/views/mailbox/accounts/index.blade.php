@@ -351,11 +351,159 @@
               <span class="mac-pill {{ $account->status === 'active' ? 'is-active' : '' }}">
                 {{ str($account->status)->headline() }}
               </span>
-              <a class="mac-btn" href="{{ route('mailbox.external.show', $account) }}">
-                <i class="fa-solid fa-arrow-right" style="font-size:11px"></i>
-                Open
-              </a>
+              <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                <button type="button" class="mac-btn" onclick="toggleAccountPanel('details-{{ $account->id }}')">
+                  <i class="fa-solid fa-eye" style="font-size:11px"></i>
+                  Show
+                </button>
+                @can('update', $account)
+                  <button type="button" class="mac-btn" onclick="toggleAccountPanel('edit-{{ $account->id }}')">
+                    <i class="fa-solid fa-pen-to-square" style="font-size:11px"></i>
+                    Edit
+                  </button>
+                  <button type="button" class="mac-btn" onclick="toggleAccountPanel('password-{{ $account->id }}')">
+                    <i class="fa-solid fa-key" style="font-size:11px"></i>
+                    Change Password
+                  </button>
+                @endcan
+                <a class="mac-btn mac-btn-primary" href="{{ route('mailbox.external.show', $account) }}">
+                  <i class="fa-solid fa-arrow-right" style="font-size:11px"></i>
+                  Open
+                </a>
+              </div>
             </div>
+
+            {{-- 1. SHOW DETAILS PANEL --}}
+            <div id="details-{{ $account->id }}" class="mac-sub-panel" style="display:none; margin-top:14px; padding:16px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px;">
+              <h3 style="font-size:13px; font-weight:700; color:#0F172A; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between;">
+                <span><i class="fa-solid fa-circle-info" style="color:var(--ac-accent); margin-right:6px;"></i> Email Account Details</span>
+                <button type="button" onclick="toggleAccountPanel('details-{{ $account->id }}')" style="background:none; border:none; color:#94A3B8; cursor:pointer; font-size:14px;"><i class="fa-solid fa-xmark"></i></button>
+              </h3>
+              <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:12px; font-size:12.5px;">
+                <div style="background:#fff; padding:10px 14px; border-radius:6px; border:1px solid #E2E8F0;">
+                  <span style="font-size:10.5px; color:#64748B; font-weight:700; text-transform:uppercase; letter-spacing:.05em;">Account Name</span>
+                  <div style="font-weight:600; color:#0F172A; margin-top:2px;">{{ $account->name }}</div>
+                </div>
+                <div style="background:#fff; padding:10px 14px; border-radius:6px; border:1px solid #E2E8F0;">
+                  <span style="font-size:10.5px; color:#64748B; font-weight:700; text-transform:uppercase; letter-spacing:.05em;">Email Address</span>
+                  <div style="font-weight:600; color:#0F172A; margin-top:2px;">{{ $account->email }}</div>
+                </div>
+                <div style="background:#fff; padding:10px 14px; border-radius:6px; border:1px solid #E2E8F0;">
+                  <span style="font-size:10.5px; color:#64748B; font-weight:700; text-transform:uppercase; letter-spacing:.05em;">Username</span>
+                  <div style="font-weight:600; color:#0F172A; margin-top:2px;">{{ $account->username }}</div>
+                </div>
+                <div style="background:#fff; padding:10px 14px; border-radius:6px; border:1px solid #E2E8F0;">
+                  <span style="font-size:10.5px; color:#64748B; font-weight:700; text-transform:uppercase; letter-spacing:.05em;">Incoming Server (IMAP)</span>
+                  <div style="font-weight:600; color:#0F172A; margin-top:2px;">{{ $account->imap_host }}</div>
+                </div>
+                <div style="background:#fff; padding:10px 14px; border-radius:6px; border:1px solid #E2E8F0;">
+                  <span style="font-size:10.5px; color:#64748B; font-weight:700; text-transform:uppercase; letter-spacing:.05em;">Outgoing Server (SMTP)</span>
+                  <div style="font-weight:600; color:#0F172A; margin-top:2px;">{{ $account->smtp_host }}</div>
+                </div>
+                <div style="background:#fff; padding:10px 14px; border-radius:6px; border:1px solid #E2E8F0;">
+                  <span style="font-size:10.5px; color:#64748B; font-weight:700; text-transform:uppercase; letter-spacing:.05em;">Ports</span>
+                  <div style="font-weight:600; color:#0F172A; margin-top:2px;">IMAP: {{ $account->imap_port }} &middot; SMTP: {{ $account->smtp_port }}</div>
+                </div>
+                <div style="background:#fff; padding:10px 14px; border-radius:6px; border:1px solid #E2E8F0;">
+                  <span style="font-size:10.5px; color:#64748B; font-weight:700; text-transform:uppercase; letter-spacing:.05em;">Encryption</span>
+                  <div style="font-weight:600; color:#0F172A; margin-top:2px;">IMAP: {{ strtoupper($account->imap_encryption ?: 'None') }} &middot; SMTP: {{ strtoupper($account->smtp_encryption ?: 'None') }}</div>
+                </div>
+              </div>
+              <div style="background:#fff; padding:10px 14px; border-radius:6px; border:1px solid #E2E8F0; margin-top:12px;">
+                <span style="font-size:10.5px; color:#64748B; font-weight:700; text-transform:uppercase; letter-spacing:.05em;">Signature</span>
+                <div style="font-size:12.5px; color:#334155; margin-top:4px; white-space:pre-wrap;">{{ ($account->settings['signature_text'] ?? null) ?: 'No signature configured.' }}</div>
+              </div>
+            </div>
+
+            {{-- 2. EDIT ACCOUNT PANEL --}}
+            @can('update', $account)
+              <div id="edit-{{ $account->id }}" class="mac-sub-panel" style="display:none; margin-top:14px; padding:16px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px;">
+                <h3 style="font-size:13px; font-weight:700; color:#0F172A; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between;">
+                  <span><i class="fa-solid fa-pen-to-square" style="color:var(--ac-accent); margin-right:6px;"></i> Edit Email Account</span>
+                  <button type="button" onclick="toggleAccountPanel('edit-{{ $account->id }}')" style="background:none; border:none; color:#94A3B8; cursor:pointer; font-size:14px;"><i class="fa-solid fa-xmark"></i></button>
+                </h3>
+                <form method="POST" action="{{ route('mailbox.accounts.update', $account) }}" class="mac-form-grid">
+                  @csrf
+                  @method('PUT')
+
+                  {{-- Editable Fields --}}
+                  <label class="mac-form-wide">
+                    Email Account Name <span style="color:#EF4444">*</span>
+                    <input name="name" required value="{{ old('name', $account->name) }}" placeholder="Sales Mailbox">
+                  </label>
+                  <label class="mac-form-wide">
+                    Email Password (Optional)
+                    <input type="password" name="secret" autocomplete="new-password" placeholder="Leave blank to keep existing password">
+                    <small>Enter a new password only if you want to update it here.</small>
+                  </label>
+                  <label class="mac-form-wide">
+                    Email Signature (Optional)
+                    <textarea name="signature" rows="4" maxlength="5000" placeholder="Name&#10;Title&#10;Company">{{ old('signature', $account->settings['signature_text'] ?? '') }}</textarea>
+                  </label>
+
+                  <div class="mac-form-wide" style="border-top:1px solid #E2E8F0; padding-top:10px; margin-top:4px; font-size:10.5px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:.05em;">
+                    Read-Only Account Settings
+                  </div>
+
+                  <label>
+                    Email Address
+                    <input value="{{ $account->email }}" readonly disabled style="background:#E2E8F0; color:#64748B; cursor:not-allowed;">
+                  </label>
+                  <label>
+                    Username
+                    <input value="{{ $account->username }}" readonly disabled style="background:#E2E8F0; color:#64748B; cursor:not-allowed;">
+                  </label>
+                  <label>
+                    Incoming Server (IMAP)
+                    <input value="{{ $account->imap_host }}" readonly disabled style="background:#E2E8F0; color:#64748B; cursor:not-allowed;">
+                  </label>
+                  <label>
+                    IMAP Port & Encryption
+                    <input value="{{ $account->imap_port }} ({{ strtoupper($account->imap_encryption ?: 'None') }})" readonly disabled style="background:#E2E8F0; color:#64748B; cursor:not-allowed;">
+                  </label>
+                  <label>
+                    Outgoing Server (SMTP)
+                    <input value="{{ $account->smtp_host }}" readonly disabled style="background:#E2E8F0; color:#64748B; cursor:not-allowed;">
+                  </label>
+                  <label>
+                    SMTP Port & Encryption
+                    <input value="{{ $account->smtp_port }} ({{ strtoupper($account->smtp_encryption ?: 'None') }})" readonly disabled style="background:#E2E8F0; color:#64748B; cursor:not-allowed;">
+                  </label>
+
+                  <div class="mac-form-actions mac-form-wide" style="padding-top:8px;">
+                    <button type="submit" class="mac-btn mac-btn-primary">
+                      <i class="fa-solid fa-check" style="font-size:11px"></i> Save Account
+                    </button>
+                    <button type="button" class="mac-btn" onclick="toggleAccountPanel('edit-{{ $account->id }}')">Cancel</button>
+                  </div>
+                </form>
+              </div>
+
+              {{-- 3. CHANGE PASSWORD PANEL --}}
+              <div id="password-{{ $account->id }}" class="mac-sub-panel" style="display:none; margin-top:14px; padding:16px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px;">
+                <h3 style="font-size:13px; font-weight:700; color:#0F172A; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between;">
+                  <span><i class="fa-solid fa-key" style="color:var(--ac-accent); margin-right:6px;"></i> Change Password</span>
+                  <button type="button" onclick="toggleAccountPanel('password-{{ $account->id }}')" style="background:none; border:none; color:#94A3B8; cursor:pointer; font-size:14px;"><i class="fa-solid fa-xmark"></i></button>
+                </h3>
+                <form method="POST" action="{{ route('mailbox.accounts.change-password', $account) }}" class="mac-form-grid">
+                  @csrf
+                  @method('PATCH')
+
+                  <label class="mac-form-wide">
+                    New Email Password <span style="color:#EF4444">*</span>
+                    <input type="password" name="secret" required placeholder="Enter new email account password" autocomplete="new-password">
+                    <small>Updates only the stored email password without affecting any other account settings.</small>
+                  </label>
+
+                  <div class="mac-form-actions mac-form-wide" style="padding-top:8px;">
+                    <button type="submit" class="mac-btn mac-btn-primary">
+                      <i class="fa-solid fa-key" style="font-size:11px"></i> Update Password
+                    </button>
+                    <button type="button" class="mac-btn" onclick="toggleAccountPanel('password-{{ $account->id }}')">Cancel</button>
+                  </div>
+                </form>
+              </div>
+            @endcan
 
             {{-- Manage access accordion --}}
             @can('update', $account)
@@ -597,3 +745,20 @@
   </div>{{-- /mac-grid --}}
 </div>{{-- /mac-wrap --}}
 @endsection
+
+@push('scripts')
+<script>
+function toggleAccountPanel(panelId) {
+    const panel = document.getElementById(panelId);
+    if (!panel) return;
+    const card = panel.closest('.mac-acct-card');
+    const isOpen = panel.style.display !== 'none';
+    if (card) {
+        card.querySelectorAll('.mac-sub-panel').forEach(p => {
+            if (p.id !== panelId) p.style.display = 'none';
+        });
+    }
+    panel.style.display = isOpen ? 'none' : 'block';
+}
+</script>
+@endpush

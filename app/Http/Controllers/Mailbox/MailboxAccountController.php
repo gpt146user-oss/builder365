@@ -102,6 +102,54 @@ class MailboxAccountController extends Controller
         }
     }
 
+    public function update(Request $request, MailboxAccount $mailboxAccount): RedirectResponse
+    {
+        $this->authorize('update', $mailboxAccount);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'signature' => ['nullable', 'string', 'max:5000'],
+            'secret' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $settings = $mailboxAccount->settings ?? [];
+        $settings['signature_text'] = $validated['signature'] ?? null;
+
+        $data = [
+            'name' => $validated['name'],
+            'settings' => $settings,
+        ];
+
+        if (! empty($validated['secret'])) {
+            $data['secret'] = $validated['secret'];
+        }
+
+        $mailboxAccount->update($data);
+
+        $this->audit->record($request->user(), 'mailbox.account.updated', 'Updated mailbox account name and signature', $mailboxAccount, ['name' => $mailboxAccount->name], $request);
+
+        return back()->with('status', 'Email account details updated successfully.');
+    }
+
+    public function changePassword(Request $request, MailboxAccount $mailboxAccount): RedirectResponse
+    {
+        $this->authorize('update', $mailboxAccount);
+
+        $validated = $request->validate([
+            'secret' => ['required', 'string', 'min:1', 'max:255'],
+        ], [
+            'secret.required' => 'Please enter the new email account password.',
+        ]);
+
+        $mailboxAccount->update([
+            'secret' => $validated['secret'],
+        ]);
+
+        $this->audit->record($request->user(), 'mailbox.account.password_changed', 'Changed email account password', $mailboxAccount, [], $request);
+
+        return back()->with('status', 'Email account password updated successfully.');
+    }
+
     public function destroy(Request $request, MailboxAccount $mailboxAccount): RedirectResponse
     {
         $this->authorize('delete', $mailboxAccount);
