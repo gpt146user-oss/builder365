@@ -48,7 +48,7 @@
         display: block;
         height: 3px;
         flex-shrink: 0;
-        background: linear-gradient(90deg, #2563EB, #60A5FA);
+        background: linear-gradient(90deg, #F5852B, #60A5FA);
         }
 
         /* ── Search bar ── */
@@ -67,7 +67,7 @@
         transition: border-color .15s, box-shadow .15s;
         }
         .cc-rail-search-inner:focus-within {
-        border-color: #2563EB;
+        border-color: #F5852B;
         box-shadow: 0 0 0 3px rgba(37,99,235,.10);
         background: #fff;
         }
@@ -107,13 +107,13 @@
         .cc-rail-tab:hover {
         background: #EEF4FF;
         border-color: #BFDBFE;
-        color: #2563EB;
+        color: #F5852B;
         text-decoration: none;
         }
         .cc-rail-tab.is-active {
         background: #EEF4FF;
         border-color: #BFDBFE;
-        color: #2563EB;
+        color: #F5852B;
         font-weight: 600;
         }
         .cc-tab-pill {
@@ -166,10 +166,10 @@
         font-size: 12px;
         color: #475569;
         }
-        .cc-search-summary strong { color: #2563EB; }
+        .cc-search-summary strong { color: #F5852B; }
         .cc-search-summary em { color: #0F172A; font-style: normal; }
         .cc-search-summary a {
-        color: #2563EB;
+        color: #F5852B;
         font-weight: 600;
         text-decoration: none;
         font-size: 11px;
@@ -218,7 +218,7 @@
         top: 20%;
         bottom: 20%;
         width: 3px;
-        background: #2563EB;
+        background: #F5852B;
         border-radius: 0 3px 3px 0;
         }
 
@@ -300,7 +300,7 @@
         white-space: nowrap;
         }
         .cc-unread-badge {
-        background: #2563EB;
+        background: #F5852B;
         color: #fff;
         font-size: 10px;
         font-weight: 700;
@@ -328,7 +328,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #2563EB;
+        color: #F5852B;
         font-size: 18px;
         margin-bottom: 4px;
         }
@@ -562,7 +562,7 @@
                                                                     <strong style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #0F172A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                                                         {{ $member->user->name }}
                                                                         @if((int)$selectedConversation->owner_user_id === (int)$member->user_id)
-                                                                            <span style="font-size: 10px; font-weight: 700; background: #EEF4FF; color: #2563EB; padding: 2px 7px; border-radius: 10px; flex-shrink: 0;">Owner</span>
+                                                                            <span style="font-size: 10px; font-weight: 700; background: #EEF4FF; color: #F5852B; padding: 2px 7px; border-radius: 10px; flex-shrink: 0;">Owner</span>
                                                                         @endif
                                                                         @if((int)$member->user_id === (int)auth()->id())
                                                                             <span style="font-size: 10px; font-weight: 700; background: #F1F5F9; color: #64748B; padding: 2px 7px; border-radius: 10px; flex-shrink: 0;">You</span>
@@ -659,7 +659,18 @@
                         <div class="b360-composer-stack">
                             <form method="POST" action="{{ route('collaboration.chat.conversations.messages.store', $selectedConversation) }}" enctype="multipart/form-data" class="b360-composer-box" x-ref="composer" x-on:submit.prevent="sendMessage">
                                 @csrf
+                                <div class="b360-chat-reply-banner" x-show="replyTarget" x-cloak style="display:flex; align-items:center; justify-space-between; background:#F1F5F9; border-left:3px solid #F58220; padding:6px 12px; margin-bottom:8px; border-radius:6px; font-size:12px;">
+                                    <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;">
+                                        <i class="fa-solid fa-reply" style="color:#F58220; margin-right:6px;"></i>
+                                        <strong x-text="replyTarget?.sender || 'Message'"></strong>:
+                                        <span style="color:#64748B; margin-left:4px;" x-text="replyTarget?.body || ''"></span>
+                                    </div>
+                                    <button type="button" x-on:click="cancelReply" style="background:none; border:none; color:#94A3B8; cursor:pointer; padding:2px 6px;" title="Cancel reply">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </div>
                                 <textarea name="body" maxlength="10000" placeholder="Write a message…" aria-label="Message" x-on:input="handleComposerInput" x-on:keydown.enter="handleComposerKeydown" x-bind:disabled="busy"></textarea>
+                                <input type="hidden" name="parent_message_id" x-ref="parentMessageInput" value="">
                                 <div class="b360-chat-attachment-selection" x-show="hasSelectedAttachments" x-cloak aria-label="Selected attachments">
                                     <template x-for="attachment in selectedAttachments" x-bind:key="attachment.key">
                                         <span class="b360-chat-selected-file">
@@ -673,12 +684,6 @@
                                     @if ($chatOptions['can_upload'] ?? false)
                                         <label class="b360-composer-tool" title="Attach files" aria-label="Attach files"><i class="fa-solid fa-paperclip"></i><input type="file" name="attachments[]" multiple x-on:change="selectAttachments"></label>
                                     @endif
-                                    <select name="parent_message_id" hidden tabindex="-1" aria-hidden="true">
-                                        <option value="">New message</option>
-                                        @foreach ($chatMessages->take(-20) as $parentMessage)
-                                            <option value="{{ $parentMessage->id }}">{{ $parentMessage->message_number }} · {{ str($parentMessage->body)->squish()->limit(50) }}</option>
-                                        @endforeach
-                                    </select>
                                     <input type="hidden" name="priority" value="normal">
                                     <details class="b360-composer-mentions" name="composer-panels" x-ref="mentionMenu">
                                         <summary class="b360-composer-tool" title="Mention a member" aria-label="Mention a member"><i class="fa-solid fa-at"></i></summary>

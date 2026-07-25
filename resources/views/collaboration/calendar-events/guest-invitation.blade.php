@@ -33,7 +33,7 @@
             overflow: hidden;
         }
         .guest-header {
-            background: #2563EB;
+            background: #F5852B;
             color: #FFFFFF;
             padding: 32px 28px 24px;
         }
@@ -78,7 +78,7 @@
             color: #475569;
         }
         .guest-detail-row i {
-            color: #2563EB;
+            color: #F5852B;
             font-size: 15px;
             margin-top: 2px;
             width: 16px;

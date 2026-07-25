@@ -1434,6 +1434,7 @@ Alpine.data('chatRealtime', () => ({
     selectedAttachments: [],
     mentionMatchCount: 0,
     mentionTriggerStart: null,
+    replyTarget: null,
 
     get hasSelectedAttachments() {
         return this.selectedAttachments.length > 0;
@@ -1625,6 +1626,7 @@ Alpine.data('chatRealtime', () => ({
             });
             form.reset();
             this.selectedAttachments = [];
+            this.cancelReply();
             form.querySelectorAll('details[open]').forEach((details) => details.removeAttribute('open'));
             this.statusMessage = '';
             await Promise.all([this.refreshTimeline(true), this.refreshSidebar()]);
@@ -1646,18 +1648,36 @@ Alpine.data('chatRealtime', () => ({
     },
 
     selectReply(event) {
-        const composer = this.$refs.composer;
-        const replySelect = composer?.querySelector('select[name="parent_message_id"]');
-        const messageId = event.currentTarget.dataset.messageId;
+        const target = event.currentTarget;
+        const messageId = target.dataset.messageId;
+        const sender = target.dataset.messageSender || 'Message';
+        const body = target.dataset.messageBody || '';
 
-        if (! replySelect || ! messageId) {
+        if (! messageId) {
             return;
         }
 
-        replySelect.value = messageId;
+        this.replyTarget = { id: messageId, sender, body };
+
+        const parentInput = this.$refs.parentMessageInput || this.$refs.composer?.querySelector('input[name="parent_message_id"]');
+        if (parentInput) {
+            parentInput.value = messageId;
+        }
+
         this.statusTone = 'info';
-        this.statusMessage = `Replying to ${event.currentTarget.dataset.messageLabel || 'message'}`;
-        composer.querySelector('textarea[name="body"]')?.focus();
+        this.statusMessage = `Replying to ${sender}`;
+        this.$refs.composer?.querySelector('textarea[name="body"]')?.focus();
+    },
+
+    cancelReply() {
+        this.replyTarget = null;
+        const parentInput = this.$refs.parentMessageInput || this.$refs.composer?.querySelector('input[name="parent_message_id"]');
+        if (parentInput) {
+            parentInput.value = '';
+        }
+        if (this.statusMessage?.startsWith('Replying to')) {
+            this.statusMessage = '';
+        }
     },
 
     closeComposerPanel(event) {

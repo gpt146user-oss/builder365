@@ -6,7 +6,7 @@
     <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #F8FAFC; color: #0F172A; margin: 0; padding: 24px; }
         .email-container { max-width: 540px; margin: 0 auto; background: #FFFFFF; border: 1px solid #E2E8F2; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .email-header { background: #2563EB; color: #FFFFFF; padding: 24px; text-align: center; }
+        .email-header { background: #F5852B; color: #FFFFFF; padding: 24px; text-align: center; }
         .email-header h1 { margin: 0; font-size: 20px; font-weight: 700; }
         .email-body { padding: 24px; }
         .status-badge { display: inline-block; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 13px; text-transform: uppercase; margin-bottom: 16px; }

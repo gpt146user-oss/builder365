@@ -585,7 +585,7 @@ html[data-theme="dark"] {
       --cal-border-2:  #C7D5EA;
 
       /* Blue accent */
-      --cal-accent:    #2563EB;
+      --cal-accent:    #F5852B;
       --cal-accent-l:  #EEF4FF;
       --cal-accent-100:#DBEAFE;
       --cal-accent-200:#BFDBFE;
@@ -599,7 +599,7 @@ html[data-theme="dark"] {
 
       /* Status tones */
       --tone-accent:   #4F46E5;
-      --tone-blue:     #2563EB;
+      --tone-blue:     #F5852B;
       --tone-violet:   #7C3AED;
       --tone-green:    #059669;
       --tone-red:      #DC2626;

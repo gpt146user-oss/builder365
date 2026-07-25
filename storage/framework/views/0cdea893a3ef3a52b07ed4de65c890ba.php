@@ -29,7 +29,7 @@
     --tm-border-2:    #C7D5EA;
 
     /* Blue accent */
-    --tm-accent:      #2563EB;
+    --tm-accent:      #F5852B;
     --tm-accent-l:    #EEF4FF;
     --tm-accent-100:  #DBEAFE;
     --tm-accent-200:  #BFDBFE;
@@ -55,7 +55,7 @@
 
     /* Priority colours */
     --tm-low:         #059669;
-    --tm-medium:      #2563EB;
+    --tm-medium:      #F5852B;
     --tm-high:        #D97706;
     --tm-urgent:      #DC2626;
     --tm-critical:    #7C3AED;

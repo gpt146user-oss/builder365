@@ -46,7 +46,7 @@
   display: block;
   height: 3px;
   flex-shrink: 0;
-  background: linear-gradient(90deg, #2563EB, #60A5FA);
+  background: linear-gradient(90deg, #F5852B, #60A5FA);
 }
 
 /* ── Search bar ── */
@@ -65,7 +65,7 @@
   transition: border-color .15s, box-shadow .15s;
 }
 .cc-rail-search-inner:focus-within {
-  border-color: #2563EB;
+  border-color: #F5852B;
   box-shadow: 0 0 0 3px rgba(37,99,235,.10);
   background: #fff;
 }
@@ -105,13 +105,13 @@
 .cc-rail-tab:hover {
   background: #EEF4FF;
   border-color: #BFDBFE;
-  color: #2563EB;
+  color: #F5852B;
   text-decoration: none;
 }
 .cc-rail-tab.is-active {
   background: #EEF4FF;
   border-color: #BFDBFE;
-  color: #2563EB;
+  color: #F5852B;
   font-weight: 600;
 }
 .cc-tab-pill {
@@ -164,10 +164,10 @@
   font-size: 12px;
   color: #475569;
 }
-.cc-search-summary strong { color: #2563EB; }
+.cc-search-summary strong { color: #F5852B; }
 .cc-search-summary em { color: #0F172A; font-style: normal; }
 .cc-search-summary a {
-  color: #2563EB;
+  color: #F5852B;
   font-weight: 600;
   text-decoration: none;
   font-size: 11px;
@@ -216,7 +216,7 @@
   top: 20%;
   bottom: 20%;
   width: 3px;
-  background: #2563EB;
+  background: #F5852B;
   border-radius: 0 3px 3px 0;
 }
 
@@ -298,7 +298,7 @@
   white-space: nowrap;
 }
 .cc-unread-badge {
-  background: #2563EB;
+  background: #F5852B;
   color: #fff;
   font-size: 10px;
   font-weight: 700;
@@ -326,7 +326,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #2563EB;
+  color: #F5852B;
   font-size: 18px;
   margin-bottom: 4px;
 }

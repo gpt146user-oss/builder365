@@ -9,7 +9,7 @@
 .dft {
   --dft-bg:       #F0F6FF;   /* page background — very light blue */
   --dft-surface:  #FFFFFF;   /* card white */
-  --dft-blue:     #2563EB;   /* primary accent */
+  --dft-blue:     #F5852B;   /* primary accent */
   --dft-blue-lt:  #DBEAFE;   /* chip / badge tint */
   --dft-blue-mid: #93C5FD;   /* subtle border accent */
   --dft-border:   #E0EDFF;   /* dividers */
@@ -121,7 +121,7 @@
   align-self: flex-start;
 }
 .dft-dot.is-failed    { background: var(--dft-red-text); }
-.dft-dot.is-scheduled { background: #2563EB; }
+.dft-dot.is-scheduled { background: #F5852B; }
 .dft-dot.is-draft     { background: #93C5FD; }
 
 /* Card body */

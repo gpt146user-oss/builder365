@@ -12,8 +12,7 @@
         'all'     => 'fa-envelope',
     ];
     $avatarColor = function (string $seed): string {
-        $colors = ['#4F46E5','#2563EB','#059669','#DC2626','#D97706',
-                   '#0891B2','#7C3AED','#BE185D','#C2410C','#0F766E'];
+        $colors = ['#4F46E5','#F5852B','#059669','#DC2626','#D97706','#0891B2','#7C3AED','#BE185D','#C2410C','#0F766E'];
         return $colors[abs(crc32($seed)) % count($colors)];
     };
 @endphp
@@ -70,7 +69,7 @@
         --c-surface2: #F7F9FC;
         --c-border:   #E2E8F2;
         --c-border2:  #C7D5EA;
-        --c-accent:   #2563EB;
+        --c-accent:   #F5852B;
         --c-accent-l: #EEF4FF;
         --c-accent-1: #DBEAFE;
         --c-accent-2: #BFDBFE;
@@ -494,17 +493,17 @@
     </nav>
 
     {{-- Sync --}}
-    <div class="mbx-sync">
-      <span class="mbx-sdot {{ $mailboxAccount->status === 'active' ? 'on' : '' }}"></span>
-      <span class="mbx-scopy">
+    <div class="mbx-sync" id="mbxSyncContainer" data-sync-url="{{ route('mailbox.accounts.sync-json', $mailboxAccount) }}">
+      <span class="mbx-sdot {{ $mailboxAccount->status === 'active' ? 'on' : '' }}" id="mbxSyncDot"></span>
+      <span class="mbx-scopy" id="mbxSyncCopy">
         {{ $mailboxAccount->last_synced_at
             ? 'Synced ' . $mailboxAccount->last_synced_at->diffForHumans()
             : 'Not synced yet' }}
       </span>
       @can('update', $mailboxAccount)
-        <form method="POST" action="{{ route('mailbox.accounts.sync', $mailboxAccount) }}">
+        <form id="mbxSyncForm" method="POST" action="{{ route('mailbox.accounts.sync', $mailboxAccount) }}">
           @csrf
-          <button type="submit" class="mbx-sbtn">Sync now</button>
+          <button type="submit" id="mbxSyncBtn" class="mbx-sbtn">Sync now</button>
         </form>
       @endcan
     </div>
@@ -942,5 +941,87 @@
 @endsection
 
 @push('scripts')
-<script src="{{ asset('js/b360-mailbox.js') }}" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const syncContainer = document.getElementById('mbxSyncContainer');
+    if (!syncContainer) return;
+
+    const syncUrl = syncContainer.getAttribute('data-sync-url');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    const syncDot = document.getElementById('mbxSyncDot');
+    const syncCopy = document.getElementById('mbxSyncCopy');
+    const syncBtn = document.getElementById('mbxSyncBtn');
+
+    let isSyncing = false;
+
+    async function triggerAutoSync() {
+        if (isSyncing || !syncUrl) return;
+        isSyncing = true;
+
+        if (syncDot) syncDot.classList.add('is-syncing');
+        if (syncBtn) {
+            syncBtn.disabled = true;
+            syncBtn.innerText = 'Scanning...';
+        }
+
+        try {
+            const response = await fetch(syncUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken || ''
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (syncCopy && data.last_synced_at) {
+                    syncCopy.innerText = data.last_synced_at;
+                }
+                if (data.created && data.created > 0) {
+                    // New emails found! Auto-reload so new messages appear in Inbox list immediately
+                    window.location.reload();
+                }
+            }
+        } catch (err) {
+            console.error('Mailbox auto-sync error:', err);
+        } finally {
+            isSyncing = false;
+            if (syncDot) syncDot.classList.remove('is-syncing');
+            if (syncBtn) {
+                syncBtn.disabled = false;
+                syncBtn.innerText = 'Sync now';
+            }
+        }
+    }
+
+    // Auto-sync every 60 seconds (1 minute)
+    const AUTO_SYNC_INTERVAL_MS = 60000;
+    setInterval(triggerAutoSync, AUTO_SYNC_INTERVAL_MS);
+
+    // Initial scan 5 seconds after page load
+    setTimeout(triggerAutoSync, 5000);
+
+    // Override manual click to use fast AJAX sync
+    const syncForm = document.getElementById('mbxSyncForm');
+    if (syncForm) {
+        syncForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            triggerAutoSync();
+        });
+    }
+});
+</script>
+<style>
+    @keyframes mbxPulseDot {
+        0% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.3; transform: scale(1.4); }
+        100% { opacity: 1; transform: scale(1); }
+    }
+    .mbx-sdot.is-syncing {
+        background-color: #f58220 !important;
+        animation: mbxPulseDot 0.8s infinite ease-in-out !important;
+    }
+</style>
 @endpush

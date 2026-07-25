@@ -2578,7 +2578,7 @@ textarea.chat-field { min-height: 122px; padding: 14px 15px; line-height: 1.5; r
   margin-bottom: 14px;
   padding: 13px 14px;
   border-radius: 15px;
-  background: linear-gradient(135deg, var(--accent, #2563eb), #1e293b);
+  background: linear-gradient(135deg, var(--accent, #F5852B), #1e293b);
   color: #fff;
 }
 .blade-sidebar-brand strong {
@@ -2624,9 +2624,9 @@ textarea.chat-field { min-height: 122px; padding: 14px 15px; line-height: 1.5; r
 .blade-sidebar-link:hover,
 .blade-sidebar-link:focus,
 .blade-sidebar-link.is-active {
-  border-color: var(--accent, #2563eb);
+  border-color: var(--accent, #F5852B);
   background: var(--accent-soft, rgb(37 99 235 / .09));
-  color: var(--accent, #2563eb);
+  color: var(--accent, #F5852B);
   outline: none;
 }
 .blade-sidebar-link.is-disabled {
@@ -2954,13 +2954,13 @@ textarea.chat-field { min-height: 122px; padding: 14px 15px; line-height: 1.5; r
   cursor: pointer;
 }
 .blade-primary-action {
-  border-color: var(--accent, #2563eb);
-  background: var(--accent, #2563eb);
+  border-color: var(--accent, #F5852B);
+  background: var(--accent, #F5852B);
   color: #fff;
 }
 .blade-secondary-action:hover,
 .blade-workspace-actions a:hover {
-  border-color: var(--accent, #2563eb);
+  border-color: var(--accent, #F5852B);
 }
 .blade-alert {
   padding: 13px 15px;
@@ -3068,7 +3068,7 @@ textarea.chat-field { min-height: 122px; padding: 14px 15px; line-height: 1.5; r
 .blade-form-grid textarea:focus,
 .blade-filter-grid input:focus,
 .blade-filter-grid select:focus {
-  border-color: var(--accent, #2563eb);
+  border-color: var(--accent, #F5852B);
   box-shadow: var(--ring, 0 0 0 3px rgb(37 99 235 / .16));
 }
 .blade-form-wide,
@@ -3100,7 +3100,7 @@ textarea.chat-field { min-height: 122px; padding: 14px 15px; line-height: 1.5; r
   line-height: 1.55;
 }
 .blade-workspace-note code {
-  color: var(--accent, #2563eb);
+  color: var(--accent, #F5852B);
 }
 .blade-dashboard-metrics {
   display: grid;
@@ -3138,7 +3138,7 @@ textarea.chat-field { min-height: 122px; padding: 14px 15px; line-height: 1.5; r
 }
 .blade-row-actions summary {
   cursor: pointer;
-  color: var(--accent, #2563eb);
+  color: var(--accent, #F5852B);
   font-size: 11px;
   font-weight: 800;
 }

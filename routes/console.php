@@ -266,6 +266,25 @@ Artisan::command('collaboration:generate-calendar-occurrences {--json}', functio
     return self::SUCCESS;
 })->purpose('Generate due recurring Calendar occurrences exactly once');
 
+Artisan::command('mailbox:sync {--json : Output machine-readable JSON}', function (\App\Application\Mailbox\Actions\SynchronizeMailboxAccount $action): int {
+    $accounts = MailboxAccount::query()->where('status', '!=', 'disabled')->where('sync_enabled', true)->get();
+    $results = [];
+    foreach ($accounts as $account) {
+        try {
+            $run = $action->execute($account);
+            $results[] = ['account' => $account->email, 'status' => 'ok', 'created' => $run->messages_created, 'updated' => $run->messages_updated];
+        } catch (Throwable $e) {
+            $results[] = ['account' => $account->email, 'status' => 'failed', 'error' => $e->getMessage()];
+        }
+    }
+    if ($this->option('json')) {
+        $this->line(json_encode(['status' => 'ok', 'syncs' => $results], JSON_PRETTY_PRINT));
+    } else {
+        $this->info("Mailbox sync completed for " . count($accounts) . " account(s).");
+    }
+    return self::SUCCESS;
+})->purpose('Synchronize all active IMAP mailbox accounts');
+
 if ((bool) config('builder360.scheduler.enabled', true)) {
     $schedulerOutputPath = (string) config('builder360.scheduler.output_path', storage_path('logs/builder360-scheduler.log'));
     $schedulerTimezone = (string) config('builder360.scheduler.timezone', config('app.timezone', 'UTC'));
@@ -294,10 +313,15 @@ if ((bool) config('builder360.scheduler.enabled', true)) {
     Schedule::command('collaboration:dispatch-calendar-reminders --json')->everyMinute()->timezone($schedulerTimezone)->withoutOverlapping(10)->appendOutputTo($schedulerOutputPath);
     Schedule::command('collaboration:generate-calendar-occurrences --json')->everyFiveMinutes()->timezone($schedulerTimezone)->withoutOverlapping(10)->appendOutputTo($schedulerOutputPath);
 
-    Schedule::call(function (): void {
-        MailboxAccount::query()->where('status', 'active')->where('sync_enabled', true)->get(['id', 'last_synced_at', 'sync_interval_minutes'])
-            ->filter(fn (MailboxAccount $account): bool => ! $account->last_synced_at || $account->last_synced_at->addMinutes($account->sync_interval_minutes)->isPast())
-            ->each(fn (MailboxAccount $account) => SynchronizeMailboxAccountJob::dispatch($account->id));
+    Schedule::call(function (\App\Application\Mailbox\Actions\SynchronizeMailboxAccount $action): void {
+        MailboxAccount::query()->where('status', '!=', 'disabled')->where('sync_enabled', true)->get()
+            ->each(function (MailboxAccount $account) use ($action): void {
+                try {
+                    $action->execute($account);
+                } catch (Throwable $e) {
+                    // Handled inside SynchronizeMailboxAccount
+                }
+            });
     })->name('mailbox:dispatch-account-syncs')->everyMinute()->timezone($schedulerTimezone)->withoutOverlapping(10);
 
     Schedule::call(function (): void {

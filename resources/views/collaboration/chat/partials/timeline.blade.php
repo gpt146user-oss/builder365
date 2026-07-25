@@ -10,10 +10,13 @@
             <x-ui.user-avatar :user="$message->sender" :label="$message->sender?->name ?? 'System'" class="b360-message-avatar" />
             <div class="b360-message-content">
                 
-                @if ($message->parent)
+                @php
+                    $parentMsg = $message->parent ?? ($message->parent_message_id ? \App\Models\ChatMessage::with('sender')->find($message->parent_message_id) : null);
+                @endphp
+                @if ($parentMsg)
                     <div class="b360-chat-reply">
-                        <strong>{{ $message->parent->sender?->name ?? 'Message' }}</strong>
-                        <span>{{ str($message->parent->body)->squish()->limit(90) }}</span>
+                        <strong><i class="fa-solid fa-reply" style="font-size:10px; margin-right:4px; opacity:0.8;"></i>{{ $parentMsg->sender?->name ?? 'Message' }}</strong>
+                        <span>{{ $parentMsg->body ? str($parentMsg->body)->squish()->limit(90) : 'Attachment' }}</span>
                     </div>
                 @endif
 
@@ -85,6 +88,8 @@
                         class="b360-chat-reply-action"
                         data-message-id="{{ $message->id }}"
                         data-message-label="{{ $message->message_number }}"
+                        data-message-sender="{{ $message->sender?->name ?? 'Message' }}"
+                        data-message-body="{{ str($message->body ?? 'Attachment')->squish()->limit(90) }}"
                         x-on:click="selectReply"
                         aria-label="Reply to {{ $message->message_number }}"
                         title="Reply"

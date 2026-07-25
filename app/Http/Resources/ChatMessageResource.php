@@ -24,6 +24,12 @@ class ChatMessageResource extends JsonResource
             'priority' => $this->priority,
             'status' => $this->status,
             'parent_message_id' => $this->parent_message_id,
+            'parent' => ($this->relationLoaded('parent') && $this->parent) || $this->parent ? [
+                'id' => $this->parent?->id,
+                'message_number' => $this->parent?->message_number,
+                'sender' => $this->parent?->sender?->name ?? 'Message',
+                'body' => $this->parent?->body ? str($this->parent->body)->squish()->limit(90)->toString() : 'Attachment',
+            ] : null,
             'sender' => $this->relationLoaded('sender') && $this->sender ? [
                 'id' => $this->sender->id,
                 'name' => $this->sender->name,

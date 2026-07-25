@@ -19,9 +19,9 @@
     --ac-blue-100:    #DBEAFE;
     --ac-blue-200:    #BFDBFE;
     --ac-blue-500:    #3B82F6;
-    --ac-blue-600:    #2563EB;
+    --ac-blue-600:    #F5852B;
     --ac-blue-700:    #1D4ED8;
-    --ac-accent:      #2563EB;
+    --ac-accent:      #F5852B;
     --ac-accent-soft: #EEF4FF;
     --ac-text:        #0F172A;
     --ac-text-2:      #334155;

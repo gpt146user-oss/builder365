@@ -585,7 +585,8 @@ Route::middleware(['auth', 'account.active', 'verified', 'company.active', 'thro
         Route::get('/accounts', [MailboxAccountController::class, 'index'])->name('accounts.index');
         Route::post('/accounts', [MailboxAccountController::class, 'store'])->middleware('throttle:10,1')->name('accounts.store');
         Route::delete('/accounts/{mailboxAccount}', [MailboxAccountController::class, 'destroy'])->name('accounts.destroy');
-        Route::post('/accounts/{mailboxAccount}/sync', [MailboxAccountController::class, 'sync'])->middleware('throttle:10,1')->name('accounts.sync');
+        Route::post('/accounts/{mailboxAccount}/sync', [MailboxAccountController::class, 'sync'])->middleware('throttle:30,1')->name('accounts.sync');
+        Route::post('/accounts/{mailboxAccount}/sync-json', [MailboxAccountController::class, 'syncJson'])->middleware('throttle:60,1')->name('accounts.sync-json');
         Route::post('/accounts/{mailboxAccount}/assignments', [MailboxAccountController::class, 'assign'])->name('accounts.assignments.store');
         Route::delete('/accounts/{mailboxAccount}/assignments/{mailboxAccountAssignment}', [MailboxAccountController::class, 'unassign'])->name('accounts.assignments.destroy');
         Route::get('/accounts/{mailboxAccount}', [MailboxAccountController::class, 'show'])->name('external.show');

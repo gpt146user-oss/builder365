@@ -10,7 +10,7 @@
         'all'     => 'fa-envelope',
     ];
     $avatarColor = function (string $seed): string {
-        $colors = ['#4F46E5','#2563EB','#059669','#DC2626','#D97706',
+        $colors = ['#4F46E5','#F5852B','#059669','#DC2626','#D97706',
                    '#0891B2','#7C3AED','#BE185D','#C2410C','#0F766E'];
         return $colors[abs(crc32($seed)) % count($colors)];
     };
@@ -68,7 +68,7 @@
         --c-surface2: #F7F9FC;
         --c-border:   #E2E8F2;
         --c-border2:  #C7D5EA;
-        --c-accent:   #2563EB;
+        --c-accent:   #F5852B;
         --c-accent-l: #EEF4FF;
         --c-accent-1: #DBEAFE;
         --c-accent-2: #BFDBFE;

@@ -9,7 +9,7 @@
         --sb-bg-hover:    #F0F4FA;
         --sb-border:      #E2E8F2;
         --sb-border-2:    #C7D5EA;
-        --sb-accent:      #2563EB;
+        --sb-accent:      #F5852B;
         --sb-accent-soft: #EEF4FF;
         --sb-accent-200:  #BFDBFE;
         --sb-text:        #0F172A;

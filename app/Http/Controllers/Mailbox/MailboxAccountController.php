@@ -80,6 +80,28 @@ class MailboxAccountController extends Controller
         return back()->with('status', "Mailbox synchronized: {$run->messages_created} new and {$run->messages_updated} updated messages.");
     }
 
+    public function syncJson(Request $request, MailboxAccount $mailboxAccount, SynchronizeMailboxAccount $action)
+    {
+        $this->authorize('update', $mailboxAccount);
+        try {
+            $run = $action->execute($mailboxAccount);
+            $freshAccount = $mailboxAccount->fresh();
+            return response()->json([
+                'status' => 'ok',
+                'created' => $run->messages_created,
+                'updated' => $run->messages_updated,
+                'last_synced_at' => $freshAccount->last_synced_at ? 'Synced '.$freshAccount->last_synced_at->diffForHumans() : 'Just now',
+                'message' => "Mailbox synchronized: {$run->messages_created} new messages.",
+            ]);
+        } catch (Throwable $exception) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Mailbox sync failed: '.$exception->getMessage(),
+                'last_synced_at' => $mailboxAccount->last_synced_at ? 'Synced '.$mailboxAccount->last_synced_at->diffForHumans() : 'Not synced',
+            ], 500);
+        }
+    }
+
     public function destroy(Request $request, MailboxAccount $mailboxAccount): RedirectResponse
     {
         $this->authorize('delete', $mailboxAccount);
