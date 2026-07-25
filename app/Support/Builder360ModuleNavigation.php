@@ -139,8 +139,38 @@ class Builder360ModuleNavigation
 
     public static function isActive(?string $route): bool
     {
+        if (! $route) {
+            return false;
+        }
+
+        if ($route === 'mailbox') {
+            return request()->routeIs('mailbox.*') || request()->routeIs('collaboration.messages.*');
+        }
+
+        if ($route === 'chat') {
+            return request()->routeIs('collaboration.chat.*');
+        }
+
+        if ($route === 'tasks') {
+            return request()->routeIs('collaboration.tasks.*') || request()->routeIs('work-tasks.*');
+        }
+
+        if ($route === 'calendar') {
+            return request()->routeIs('collaboration.calendar-events.*') || request()->routeIs('calendar.*');
+        }
+
         $routeName = self::routeNameFor($route);
 
-        return $routeName !== null && request()->routeIs($routeName);
+        if (! $routeName) {
+            return false;
+        }
+
+        if (request()->routeIs($routeName)) {
+            return true;
+        }
+
+        $prefix = \Illuminate\Support\Str::before($routeName, '.');
+
+        return $prefix !== '' && request()->routeIs($prefix . '.*');
     }
 }

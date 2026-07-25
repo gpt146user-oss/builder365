@@ -238,19 +238,9 @@ class MailboxAccountController extends Controller
     //     $mailboxAccount->load('folders');
     //     return view('mailbox.external.show', compact('mailboxAccount', 'folder', 'emails', 'selected','threadMessages','composeDraft','contacts','availableAccounts','sendAccounts','composeData'));
     // }
-    public function show(Request $request, MailboxAccount $mailboxAccount, SynchronizeMailboxAccount $syncAction)
+    public function show(Request $request, MailboxAccount $mailboxAccount)
     {
         $this->authorize('view', $mailboxAccount);
-
-        // ── Auto-sync mailbox before displaying latest messages ─────────────
-        if ($mailboxAccount->status !== 'disabled' && $mailboxAccount->sync_enabled) {
-            try {
-                $syncAction->execute($mailboxAccount);
-                $mailboxAccount->refresh();
-            } catch (Throwable $exception) {
-                report($exception);
-            }
-        }
     
         // ── Resolve active folder ──────────────────────────────────────────
         $folder = $mailboxAccount->folders()

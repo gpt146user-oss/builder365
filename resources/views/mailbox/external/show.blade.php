@@ -949,76 +949,76 @@
 
 @push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const syncContainer = document.getElementById('mbxSyncContainer');
-    if (!syncContainer) return;
+  document.addEventListener('DOMContentLoaded', function() {
+      const syncContainer = document.getElementById('mbxSyncContainer');
+      if (!syncContainer) return;
 
-    const syncUrl = syncContainer.getAttribute('data-sync-url');
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    const syncDot = document.getElementById('mbxSyncDot');
-    const syncCopy = document.getElementById('mbxSyncCopy');
-    const syncBtn = document.getElementById('mbxSyncBtn');
+      const syncUrl = syncContainer.getAttribute('data-sync-url');
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+      const syncDot = document.getElementById('mbxSyncDot');
+      const syncCopy = document.getElementById('mbxSyncCopy');
+      const syncBtn = document.getElementById('mbxSyncBtn');
 
-    let isSyncing = false;
+      let isSyncing = false;
 
-    async function triggerAutoSync() {
-        if (isSyncing || !syncUrl) return;
-        isSyncing = true;
+      async function triggerAutoSync() {
+          if (isSyncing || !syncUrl) return;
+          isSyncing = true;
 
-        if (syncDot) syncDot.classList.add('is-syncing');
-        if (syncBtn) {
-            syncBtn.disabled = true;
-            syncBtn.innerText = 'Scanning...';
-        }
+          if (syncDot) syncDot.classList.add('is-syncing');
+          if (syncBtn) {
+              syncBtn.disabled = true;
+              syncBtn.innerText = 'Scanning...';
+          }
 
-        try {
-            const response = await fetch(syncUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken || ''
-                }
-            });
+          try {
+              const response = await fetch(syncUrl, {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json',
+                      'Accept': 'application/json',
+                      'X-CSRF-TOKEN': csrfToken || ''
+                  }
+              });
 
-            if (response.ok) {
-                const data = await response.json();
-                if (syncCopy && data.last_synced_at) {
-                    syncCopy.innerText = data.last_synced_at;
-                }
-                if (data.created && data.created > 0) {
-                    // New emails found! Auto-reload so new messages appear in Inbox list immediately
-                    window.location.reload();
-                }
-            }
-        } catch (err) {
-            console.error('Mailbox auto-sync error:', err);
-        } finally {
-            isSyncing = false;
-            if (syncDot) syncDot.classList.remove('is-syncing');
-            if (syncBtn) {
-                syncBtn.disabled = false;
-                syncBtn.innerText = 'Sync now';
-            }
-        }
-    }
+              if (response.ok) {
+                  const data = await response.json();
+                  if (syncCopy && data.last_synced_at) {
+                      syncCopy.innerText = data.last_synced_at;
+                  }
+                  if (data.created && data.created > 0) {
+                      // New emails found! Auto-reload so new messages appear in Inbox list immediately
+                      window.location.reload();
+                  }
+              }
+          } catch (err) {
+              console.error('Mailbox auto-sync error:', err);
+          } finally {
+              isSyncing = false;
+              if (syncDot) syncDot.classList.remove('is-syncing');
+              if (syncBtn) {
+                  syncBtn.disabled = false;
+                  syncBtn.innerText = 'Sync now';
+              }
+          }
+      }
 
-    // Auto-sync every 60 seconds (1 minute)
-    const AUTO_SYNC_INTERVAL_MS = 60000;
-    setInterval(triggerAutoSync, AUTO_SYNC_INTERVAL_MS);
+      // Auto-sync every 60 seconds (1 minute)
+      const AUTO_SYNC_INTERVAL_MS = 60000 * 5;
+      setInterval(triggerAutoSync, AUTO_SYNC_INTERVAL_MS);
 
-    // Initial scan 5 seconds after page load
-    setTimeout(triggerAutoSync, 5000);
+      // Initial scan 5 seconds after page load
+      setTimeout(triggerAutoSync, 5000);
 
-    // Override manual click to use fast AJAX sync
-    const syncForm = document.getElementById('mbxSyncForm');
-    if (syncForm) {
-        syncForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            triggerAutoSync();
-        });
-    }
-});
+      // Override manual click to use fast AJAX sync
+      const syncForm = document.getElementById('mbxSyncForm');
+      if (syncForm) {
+          syncForm.addEventListener('submit', function(e) {
+              e.preventDefault();
+              triggerAutoSync();
+          });
+      }
+  });
 </script>
 <style>
     @keyframes mbxPulseDot {

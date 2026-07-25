@@ -1,17 +1,3 @@
-{{--
-    Builder360 · Primary Sidebar
-    resources/views/builder360/classic/partials/sidebar.blade.php
-
-    KEY CHANGES:
-    â€¢ NO inline <script> — all JS lives in resources/js/b360/shell.js (Alpine component)
-    â€¢ Collapse button uses  x-on:click="toggleSidebar()"  (Alpine method, no `window`)
-    â€¢ CSS collapse classes driven by body.sidebar-collapsed, NOT sidebar.is-collapsed
-      → Alpine toggles the body class; CSS selectors cascade down to the sidebar
-    â€¢ Tooltip wiring kept in a tiny <script> pushed to @stack('scripts') at end of body
-      to satisfy CSP (inline scripts at bottom of body are allowed by most setups;
-      if your CSP is strict-dynamic with nonces, add @nonce to the script tag)
---}}
-
 <style>
     /* ── Tokens (scoped, won't leak if already defined in enterprise.css) ── */
     :root {
@@ -20,16 +6,16 @@
         --sb-bg:          #FFFFFF;
         --sb-bg-hover:    #F0F4FA;
         --sb-border:      #E2E8F2;
-        --sb-border-2:    #C7D5EA;
-        --sb-accent:      #F5852B;
+        --sb-border-2:    #f5ccab;
+        --sb-accent:      #F6740C;
         --sb-accent-soft: #EEF4FF;
-        --sb-accent-200:  #BFDBFE;
+        --sb-accent-200:  #f1b98a;
         --sb-text:        #0F172A;
         --sb-text-2:      #334155;
         --sb-text-3:      #64748B;
         --sb-text-muted:  #94A3B8;
         --sb-danger:      #EF4444;
-        --sb-brand:       #4F46E5;
+        --sb-brand:       #F6740C;
         --sb-ease:        cubic-bezier(0.16, 1, 0.3, 1);
         --sb-r-sm:        8px;
         --sb-r-md:        10px;
@@ -75,7 +61,7 @@
         padding: 14px 14px 12px;
         border-bottom: 1px solid var(--sb-border);
         flex-shrink: 0;
-        min-height: 60px;
+        min-height: 82px;
         overflow: hidden;
     }
     .b360-brand-icon {
@@ -243,7 +229,7 @@
 
     .b360-avatar {
         width: 32px; height: 32px; border-radius: var(--sb-r-sm);
-        background: linear-gradient(135deg, var(--sb-brand), #818cf8);
+        background: linear-gradient(135deg, var(--sb-brand), #f3b582);
         color: #fff; font-size: 12px; font-weight: 700;
         display: flex; align-items: center; justify-content: center;
         flex-shrink: 0; letter-spacing: .02em;
@@ -337,13 +323,8 @@
 
     {{-- Brand --}}
     <div class="b360-brand">
-        <div class="b360-brand-icon">
-            <i class="fa-solid fa-building" aria-hidden="true"></i>
-        </div>
-        <div class="b360-brand-text">
-            <div class="b360-brand-title">Builder360</div>
-            <div class="b360-brand-subtitle">ERP · CRM</div>
-        </div>
+               <img src="https://build365.arinine.com/Logo1.png" alt="" style="height:4rem;width: 13rem;">
+       
         <button
             class="b360-collapse-btn"
             id="b360CollapseBtn"
@@ -384,20 +365,39 @@
     </form>
 
     <nav class="b360-nav" aria-label="Main navigation">
+        @php
+            $allowedItems = [
+                'Task Management',
+                'Calendar Management',
+                'Chat Connect',
+                'Mailbox',
+            ];
+
+            $isDirector = auth()->user()->role?->slug === 'directords';
+        @endphp
+    
         @forelse ($shell->navigation as $group)
     
-            {{--
-                SYSTEM SECTION — director only.
-                Skip rendering this entire group for non-directors.
-                Change 'System' below to match your exact group label.
-            --}}
-            @if($group->label === 'System' && auth()->user()->role?->slug !== 'director')
-                @continue
-            @endif
+            @php
+                $visibleItems = collect($group->items)->filter(
+                    fn($item) => in_array($item->name, $allowedItems, true)
+                );
+                $isSystemGroup = strtolower($group->label) === 'system';
+    
+                if ($isSystemGroup && ! $isDirector) continue;
+    
+                if (! $isSystemGroup && $visibleItems->isEmpty()) continue;
+            @endphp
     
             <section class="b360-nav-group" aria-label="{{ $group->label }}">
                 <span class="b360-nav-group-label" aria-hidden="true">{{ $group->label }}</span>
+    
                 @foreach ($group->items as $item)
+    
+                    @php
+                        if (! $isSystemGroup && ! in_array($item->name, $allowedItems, true)) continue;
+                    @endphp
+    
                     @if ($item->url)
                         <a
                             href="{{ $item->url }}"
@@ -428,6 +428,7 @@
                             <span class="b360-nav-label">{{ $item->name }}</span>
                         </span>
                     @endif
+    
                 @endforeach
             </section>
     
@@ -437,7 +438,8 @@
             </p>
         @endforelse
     </nav>
-    {{-- Profile --}}
+   
+
     <details class="b360-profile-section b360-profile-menu">
         <summary class="b360-profile-summary">
             <div class="b360-avatar" aria-hidden="true">{{ $shell->userInitial }}</div>
@@ -448,9 +450,10 @@
             <i class="fa-solid fa-chevron-up b360-profile-chevron" aria-hidden="true"></i>
         </summary>
         <nav class="b360-profile-popover" aria-label="Profile options">
-            <a href="{{ route('builder360.dashboard') }}">
-                <i class="fa-solid fa-gauge" aria-hidden="true"></i> My Dashboard
-            </a>
+            <!-- 
+                <a href="{{ route('builder360.dashboard') }}">
+                    <i class="fa-solid fa-gauge" aria-hidden="true"></i> My Dashboard
+                </a> -->
             <a href="{{ route('builder360.profile') }}">
                 <i class="fa-regular fa-user" aria-hidden="true"></i> My Profile
             </a>
