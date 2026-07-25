@@ -1647,8 +1647,19 @@ Alpine.data('chatRealtime', () => ({
         event.currentTarget.form?.requestSubmit();
     },
 
+    handleTimelineClick(event) {
+        const replyBtn = event?.target?.closest?.('.b360-chat-reply-action');
+        if (replyBtn) {
+            this.selectReply({ currentTarget: replyBtn });
+        }
+    },
+
     selectReply(event) {
-        const target = event.currentTarget;
+        const target = (event?.currentTarget || event?.target)?.closest?.('.b360-chat-reply-action') || event?.currentTarget;
+        if (! target) {
+            return;
+        }
+
         const messageId = target.dataset.messageId;
         const sender = target.dataset.messageSender || 'Message';
         const body = target.dataset.messageBody || '';
@@ -1666,7 +1677,11 @@ Alpine.data('chatRealtime', () => ({
 
         this.statusTone = 'info';
         this.statusMessage = `Replying to ${sender}`;
-        this.$refs.composer?.querySelector('textarea[name="body"]')?.focus();
+        
+        const textarea = this.$refs.composer?.querySelector('textarea[name="body"]');
+        if (textarea) {
+            textarea.focus();
+        }
     },
 
     cancelReply() {
@@ -1805,6 +1820,7 @@ Alpine.data('chatRealtime', () => ({
         try {
             await this.request(this.formAction(form), { method: 'POST', body: new FormData(form) });
             await Promise.all([this.refreshTimeline(false), this.refreshSidebar()]);
+            this.autoMarkRead();
         } catch (error) {
             this.statusTone = 'error';
             this.statusMessage = error.message;
@@ -1855,12 +1871,17 @@ Alpine.data('chatRealtime', () => ({
             return;
         }
 
+        const current = this.$root.querySelector('[x-ref="sidebar"]');
+        if (! current) {
+            return;
+        }
+
         try {
             const response = await this.request(this.$root.dataset.sidebarUrl, { accept: 'text/html' });
             const html = await response.text();
-            const current = this.$root.querySelector('[x-ref="conversationList"]');
-            if (current && current.innerHTML !== html) {
-                current.innerHTML = html;
+
+            if (html.trim() !== current.innerHTML) {
+                current.innerHTML = html.trim();
                 window.Alpine.initTree(current);
             }
         } catch (_error) {
@@ -1869,21 +1890,30 @@ Alpine.data('chatRealtime', () => ({
     },
 
     async autoMarkRead() {
-        if (! this.$root.dataset.readUrl || Number(this.$root.dataset.selectedUnread || 0) < 1) {
+        if (! this.$root.dataset.readUrl) {
             return;
         }
 
         try {
             await this.request(this.$root.dataset.readUrl, { method: 'PATCH' });
             this.$root.dataset.selectedUnread = '0';
-            await this.refreshSidebar();
+            const activeRow = this.$root.querySelector('[data-conversation-row].is-active');
+            if (activeRow) {
+                const badge = activeRow.querySelector('.cc-unread-badge');
+                if (badge) {
+                    badge.remove();
+                }
+            }
         } catch (_error) {
             // Manual mark-read remains available in the conversation header.
         }
     },
 
     handleConversationEvent() {
-        Promise.all([this.refreshTimeline(false), this.refreshSidebar()]);
+        this.refreshTimeline(false).then(() => {
+            this.autoMarkRead();
+        });
+        this.refreshSidebar();
     },
 
     handleUserEvent(payload) {

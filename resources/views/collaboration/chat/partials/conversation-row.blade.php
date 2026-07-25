@@ -50,7 +50,7 @@
         @if ($timeLabel)
             <time class="cc-conv-time">{{ $timeLabel }}</time>
         @endif
-        @if (($conversation->unread_count ?? 0) > 0)
+        @if (($conversation->unread_count ?? 0) > 0 && ! $isSelected)
             <em class="cc-unread-badge">{{ $conversation->unread_count > 99 ? '99+' : $conversation->unread_count }}</em>
         @endif
     </span>

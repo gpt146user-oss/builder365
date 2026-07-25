@@ -1,4 +1,4 @@
-<div class="b360-thread-timeline" x-ref="timeline" aria-live="polite">
+<div class="b360-thread-timeline" x-ref="timeline" aria-live="polite" x-on:click="handleTimelineClick">
     @forelse ($chatMessages as $message)
         @php
             $isMine = (int) $message->sender_user_id === (int) auth()->id();
@@ -9,6 +9,10 @@
         <article class="b360-thread-message {{ $isMine ? 'is-mine' : '' }}" data-message-id="{{ $message->id }}">
             <x-ui.user-avatar :user="$message->sender" :label="$message->sender?->name ?? 'System'" class="b360-message-avatar" />
             <div class="b360-message-content">
+                <header>
+                    <strong>{{ $message->sender?->name ?? 'System' }}</strong>
+                    <small>{{ $message->created_at?->format('h:i A') }}</small>
+                </header>
                 
                 @php
                     $parentMsg = $message->parent ?? ($message->parent_message_id ? \App\Models\ChatMessage::with('sender')->find($message->parent_message_id) : null);
@@ -68,10 +72,6 @@
                         @endif
                     </div>
                 @endif
-                <header>
-                    <strong>{{ $message->sender?->name ?? 'System' }}</strong>
-                    <small>{{ $message->created_at?->format('h:i A') }}</small>
-                </header>
 
                 @if ($reactionGroups->isNotEmpty())
                     <div class="b360-chat-reaction-summary">
