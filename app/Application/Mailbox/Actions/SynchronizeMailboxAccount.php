@@ -10,13 +10,18 @@ use App\Services\Notifications\NotificationCenterService;
 
 final readonly class SynchronizeMailboxAccount
 {
-    public function __construct(private ImapMailboxGateway $gateway, private NotificationCenterService $notifications) {}
+    public function __construct(
+        private ImapMailboxGateway $gateway,
+        private NotificationCenterService $notifications,
+        private \App\Domain\Mailbox\Services\MailboxThreadResolver $threadResolver = new \App\Domain\Mailbox\Services\MailboxThreadResolver()
+    ) {}
 
     public function execute(MailboxAccount $account): MailboxSyncRun
     {
         $run = $account->syncRuns()->create(['status' => 'running', 'started_at' => now()]);
         try {
             $result = $this->gateway->synchronize($account);
+            $this->threadResolver->repairAccountThreads($account);
             $run->update([
                 'status' => 'succeeded', 'finished_at' => now(), 'folders_processed' => $result['folders'],
                 'messages_created' => $result['created'], 'messages_updated' => $result['updated'],

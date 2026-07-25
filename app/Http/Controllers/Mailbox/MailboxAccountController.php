@@ -110,10 +110,25 @@ class MailboxAccountController extends Controller
             'name' => ['required', 'string', 'max:120'],
             'signature' => ['nullable', 'string', 'max:5000'],
             'secret' => ['nullable', 'string', 'max:255'],
+            'avatar' => ['nullable', 'file', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:5120'],
+            'remove_avatar' => ['nullable', 'boolean'],
         ]);
 
         $settings = $mailboxAccount->settings ?? [];
         $settings['signature_text'] = $validated['signature'] ?? null;
+
+        if ($request->boolean('remove_avatar')) {
+            if (! empty($settings['avatar_path'])) {
+                Storage::disk('local')->delete($settings['avatar_path']);
+                unset($settings['avatar_path']);
+            }
+        } elseif ($request->hasFile('avatar')) {
+            if (! empty($settings['avatar_path'])) {
+                Storage::disk('local')->delete($settings['avatar_path']);
+            }
+            $path = $request->file('avatar')->store('mailbox-avatars/' . $mailboxAccount->id, 'local');
+            $settings['avatar_path'] = $path;
+        }
 
         $data = [
             'name' => $validated['name'],
@@ -126,9 +141,33 @@ class MailboxAccountController extends Controller
 
         $mailboxAccount->update($data);
 
-        $this->audit->record($request->user(), 'mailbox.account.updated', 'Updated mailbox account name and signature', $mailboxAccount, ['name' => $mailboxAccount->name], $request);
+        $this->audit->record($request->user(), 'mailbox.account.updated', 'Updated mailbox account profile and details', $mailboxAccount, ['name' => $mailboxAccount->name], $request);
 
-        return back()->with('status', 'Email account details updated successfully.');
+        return back()->with('status', 'Email account profile updated successfully.');
+    }
+
+    public function avatar(Request $request, MailboxAccount $mailboxAccount)
+    {
+        $this->authorize('view', $mailboxAccount);
+        $avatarPath = $mailboxAccount->settings['avatar_path'] ?? null;
+
+        if ($avatarPath && Storage::disk('local')->exists($avatarPath)) {
+            return Storage::disk('local')->response($avatarPath, null, [
+                'Cache-Control' => 'private, max-age=86400',
+                'Content-Disposition' => 'inline',
+            ]);
+        }
+
+        $initials = strtoupper(substr($mailboxAccount->name ?: $mailboxAccount->email, 0, 2));
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">'
+            . '<rect width="128" height="128" rx="64" fill="#F58220"/>'
+            . '<text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="#FFFFFF" font-family="sans-serif" font-size="44" font-weight="700">' . e($initials) . '</text>'
+            . '</svg>';
+
+        return response($svg, 200, [
+            'Content-Type' => 'image/svg+xml',
+            'Cache-Control' => 'private, max-age=86400',
+        ]);
     }
 
     public function changePassword(Request $request, MailboxAccount $mailboxAccount): RedirectResponse
@@ -199,9 +238,19 @@ class MailboxAccountController extends Controller
     //     $mailboxAccount->load('folders');
     //     return view('mailbox.external.show', compact('mailboxAccount', 'folder', 'emails', 'selected','threadMessages','composeDraft','contacts','availableAccounts','sendAccounts','composeData'));
     // }
-    public function show(Request $request, MailboxAccount $mailboxAccount)
+    public function show(Request $request, MailboxAccount $mailboxAccount, SynchronizeMailboxAccount $syncAction)
     {
         $this->authorize('view', $mailboxAccount);
+
+        // ── Auto-sync mailbox before displaying latest messages ─────────────
+        if ($mailboxAccount->status !== 'disabled' && $mailboxAccount->sync_enabled) {
+            try {
+                $syncAction->execute($mailboxAccount);
+                $mailboxAccount->refresh();
+            } catch (Throwable $exception) {
+                report($exception);
+            }
+        }
     
         // ── Resolve active folder ──────────────────────────────────────────
         $folder = $mailboxAccount->folders()
@@ -300,11 +349,24 @@ class MailboxAccountController extends Controller
                     ->findOrFail($request->integer('message'))
                 : $emails->first();
     
-            // Build thread from shared thread_key (if any)
-            $threadMessages = $selected?->thread_key
+            // Build conversation thread from shared thread_key or message headers
+            $threadKey = $selected?->thread_key;
+            if (! $threadKey && $selected) {
+                $threadResolver = app(\App\Domain\Mailbox\Services\MailboxThreadResolver::class);
+                $threadKey = $threadResolver->resolveThreadKey(
+                    $mailboxAccount,
+                    $selected->internet_message_id,
+                    $selected->in_reply_to,
+                    $selected->references ?? [],
+                    $selected->subject
+                );
+                $selected->update(['thread_key' => $threadKey]);
+            }
+
+            $threadMessages = $threadKey
                 ? $mailboxAccount->emails()
                     ->with('attachments')
-                    ->where('thread_key', $selected->thread_key)
+                    ->where('thread_key', $threadKey)
                     ->where('is_deleted', false)
                     ->oldest('received_at')
                     ->get()

@@ -15,6 +15,10 @@ use Webklex\PHPIMAP\ClientManager;
 
 final class WebklexImapMailboxGateway implements ImapMailboxGateway
 {
+    public function __construct(
+        private readonly \App\Domain\Mailbox\Services\MailboxThreadResolver $threadResolver = new \App\Domain\Mailbox\Services\MailboxThreadResolver()
+    ) {}
+
     public function test(MailboxAccount $account): void
     {
         $client = $this->client($account);
@@ -141,10 +145,18 @@ final class WebklexImapMailboxGateway implements ImapMailboxGateway
         $html = $message->getHTMLBody();
         $hash = hash('sha256', json_encode([$subject, $flags, $text, $html], JSON_THROW_ON_ERROR));
 
+        $threadKey = $this->threadResolver->resolveThreadKey(
+            $account,
+            $messageId,
+            $inReplyTo,
+            $references,
+            $subject
+        );
+
         return [
             'mailbox_account_id' => $account->id, 'mailbox_folder_id' => $folder->id,
             'remote_uid' => (int) $this->scalar($message->getUid()), 'internet_message_id' => $messageId,
-            'thread_key' => ($root=($references[0]??$inReplyTo??$messageId)) ? hash('sha256',strtolower($root)) : null,
+            'thread_key' => $threadKey,
             'in_reply_to' => $inReplyTo,
             'references' => $references,
             'subject' => $subject ?: '(No subject)', 'from_addresses' => $addresses($message->getFrom()),

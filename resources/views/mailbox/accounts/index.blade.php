@@ -343,6 +343,7 @@
             {{-- Account summary row --}}
             <div class="mac-acct-row">
               <span class="mac-dot {{ $account->status === 'active' ? 'is-active' : '' }}"></span>
+              <img src="{{ route('mailbox.accounts.avatar', $account) }}" alt="{{ $account->name }}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:2px solid var(--ac-border-2); flex-shrink:0;">
               <div class="mac-acct-info">
                 <strong>{{ $account->name }}</strong>
                 <small>{{ $account->email }}</small>
@@ -379,6 +380,13 @@
                 <span><i class="fa-solid fa-circle-info" style="color:var(--ac-accent); margin-right:6px;"></i> Email Account Details</span>
                 <button type="button" onclick="toggleAccountPanel('details-{{ $account->id }}')" style="background:none; border:none; color:#94A3B8; cursor:pointer; font-size:14px;"><i class="fa-solid fa-xmark"></i></button>
               </h3>
+              <div style="display:flex; align-items:center; gap:14px; background:#fff; padding:12px 14px; border:1px solid #E2E8F0; border-radius:8px; margin-bottom:12px;">
+                <img src="{{ route('mailbox.accounts.avatar', $account) }}" alt="{{ $account->name }}" style="width:52px; height:52px; border-radius:50%; object-fit:cover; border:2px solid var(--ac-accent); flex-shrink:0;">
+                <div>
+                  <h4 style="font-size:14px; font-weight:700; color:#0F172A; margin:0;">{{ $account->name }}</h4>
+                  <p style="font-size:12.5px; color:#64748B; margin:2px 0 0;">{{ $account->email }}</p>
+                </div>
+              </div>
               <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:12px; font-size:12.5px;">
                 <div style="background:#fff; padding:10px 14px; border-radius:6px; border:1px solid #E2E8F0;">
                   <span style="font-size:10.5px; color:#64748B; font-weight:700; text-transform:uppercase; letter-spacing:.05em;">Account Name</span>
@@ -422,9 +430,26 @@
                   <span><i class="fa-solid fa-pen-to-square" style="color:var(--ac-accent); margin-right:6px;"></i> Edit Email Account</span>
                   <button type="button" onclick="toggleAccountPanel('edit-{{ $account->id }}')" style="background:none; border:none; color:#94A3B8; cursor:pointer; font-size:14px;"><i class="fa-solid fa-xmark"></i></button>
                 </h3>
-                <form method="POST" action="{{ route('mailbox.accounts.update', $account) }}" class="mac-form-grid">
+                <form method="POST" action="{{ route('mailbox.accounts.update', $account) }}" enctype="multipart/form-data" class="mac-form-grid">
                   @csrf
                   @method('PUT')
+
+                  {{-- Account Profile Photo / Avatar --}}
+                  <div class="mac-form-wide" style="display:flex; align-items:center; gap:14px; background:#fff; padding:12px 14px; border:1px solid #E2E8F0; border-radius:8px;">
+                    <img src="{{ route('mailbox.accounts.avatar', $account) }}" alt="{{ $account->name }}" style="width:52px; height:52px; border-radius:50%; object-fit:cover; border:2px solid var(--ac-accent); flex-shrink:0;">
+                    <div style="flex:1;">
+                      <label style="font-size:12px; font-weight:600; color:#0F172A; margin:0; display:block;">
+                        Account Profile Photo / Avatar
+                        <input type="file" name="avatar" accept="image/*" style="margin-top:4px; font-size:12px;">
+                      </label>
+                      @if(! empty($account->settings['avatar_path']))
+                        <label class="mac-checkbox-row" style="margin-top:6px;">
+                          <input type="checkbox" name="remove_avatar" value="1">
+                          Remove profile picture
+                        </label>
+                      @endif
+                    </div>
+                  </div>
 
                   {{-- Editable Fields --}}
                   <label class="mac-form-wide">
@@ -624,7 +649,7 @@
         </header>
 
         <div style="padding:20px 22px 24px">
-          <form method="POST" action="{{ route('mailbox.accounts.store') }}" class="mac-form-grid">
+          <form method="POST" action="{{ route('mailbox.accounts.store') }}" enctype="multipart/form-data" class="mac-form-grid">
             @csrf
 
             {{-- Identity --}}
@@ -637,6 +662,10 @@
               Email address
               <input type="email" name="email" required
                      value="{{ old('email') }}" placeholder="sales@company.com">
+            </label>
+            <label class="mac-form-wide">
+              Account Profile Photo / Avatar (Optional)
+              <input type="file" name="avatar" accept="image/*">
             </label>
 
             {{-- IMAP --}}

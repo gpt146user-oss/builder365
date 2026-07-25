@@ -586,6 +586,7 @@ Route::middleware(['auth', 'account.active', 'verified', 'company.active', 'thro
         Route::post('/accounts', [MailboxAccountController::class, 'store'])->middleware('throttle:10,1')->name('accounts.store');
         Route::delete('/accounts/{mailboxAccount}', [MailboxAccountController::class, 'destroy'])->name('accounts.destroy');
         Route::put('/accounts/{mailboxAccount}', [MailboxAccountController::class, 'update'])->name('accounts.update');
+        Route::get('/accounts/{mailboxAccount}/avatar', [MailboxAccountController::class, 'avatar'])->name('accounts.avatar');
         Route::patch('/accounts/{mailboxAccount}/change-password', [MailboxAccountController::class, 'changePassword'])->name('accounts.change-password');
         Route::post('/accounts/{mailboxAccount}/sync', [MailboxAccountController::class, 'sync'])->middleware('throttle:30,1')->name('accounts.sync');
         Route::post('/accounts/{mailboxAccount}/sync-json', [MailboxAccountController::class, 'syncJson'])->middleware('throttle:60,1')->name('accounts.sync-json');

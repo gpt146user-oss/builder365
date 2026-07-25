@@ -19,6 +19,7 @@ class StoreMailboxAccountRequest extends FormRequest
             'smtp_encryption' => ['nullable', Rule::in(['ssl', 'tls'])], 'username' => ['required', 'string', 'max:255'],
             'secret' => ['required', 'string', 'max:4096'], 'sync_interval_minutes' => ['nullable', 'integer', 'between:1,1440'],
             'signature' => ['nullable','string','max:5000'],
+            'avatar' => ['nullable', 'file', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:5120'],
         ];
     }
 }
