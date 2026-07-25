@@ -855,18 +855,25 @@
             </button>
           </form>
 
-          {{-- Archive / Spam / Delete --}}
-          @foreach(['archive' => ['Archive','fa-box-archive',''], 'spam' => ['Spam','fa-shield-halved',''], 'trash' => ['Delete','fa-trash','danger']] as $act => [$lbl, $icon, $cls])
+          {{-- Archive / Spam --}}
+          @foreach(['archive' => ['Archive','fa-box-archive'], 'spam' => ['Spam','fa-shield-halved']] as $act => [$lbl, $icon])
             @if($mailboxAccount->folders->contains('special_use', $act))
               <form method="POST" action="{{ route('mailbox.external.state', $selected) }}">
                 @csrf @method('PATCH')
                 <input type="hidden" name="action" value="{{ $act }}">
-                <button type="submit" class="mbx-btn {{ $cls }}">
+                <button type="submit" class="mbx-btn">
                   <i class="fa-solid {{ $icon }}" aria-hidden="true"></i> {{ $lbl }}
                 </button>
               </form>
             @endif
           @endforeach
+
+          {{-- Delete Workflow Button (opens modal dialog) --}}
+          @php $isTrashView = ($folder?->special_use === 'trash'); @endphp
+          <button type="button" class="mbx-btn danger" onclick="openDeleteDialog({{ $isTrashView ? 'true' : 'false' }})">
+            <i class="fa-solid {{ $isTrashView ? 'fa-trash-can' : 'fa-trash' }}" aria-hidden="true"></i>
+            {{ $isTrashView ? 'Delete permanently' : 'Delete' }}
+          </button>
 
           {{-- Restore --}}
           @if(in_array($selected->folder?->special_use, ['trash','spam'], true)
@@ -1024,4 +1031,89 @@ document.addEventListener('DOMContentLoaded', function() {
         animation: mbxPulseDot 0.8s infinite ease-in-out !important;
     }
 </style>
+
+{{-- ════════════════════════════════════════════════════════
+     EMAIL DELETE WORKFLOW CONFIRMATION MODAL
+     ════════════════════════════════════════════════════════ --}}
+@if($selected)
+  <div id="deleteModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(15,23,42,0.55); backdrop-filter:blur(3px); z-index:99999; align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:14px; width:92%; max-width:440px; padding:24px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.15); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+        <h3 id="deleteModalTitle" style="font-size:16px; font-weight:700; color:#0F172A; margin:0; display:flex; align-items:center; gap:8px;">
+          <i class="fa-solid fa-trash-can" style="color:#DC2626;"></i> Delete Email
+        </h3>
+        <button type="button" onclick="closeDeleteDialog()" style="background:none; border:none; color:#94A3B8; cursor:pointer; font-size:16px; padding:4px;"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <p id="deleteModalBody" style="font-size:13px; color:#475569; margin:0 0 20px; line-height:1.5;">
+        What would you like to do with this email?
+      </p>
+
+      {{-- Standard folder options (Move to Trash / Archive) --}}
+      <div id="standardDeleteOptions" style="display:flex; flex-direction:column; gap:10px;">
+        <form method="POST" action="{{ route('mailbox.external.state', $selected) }}">
+          @csrf @method('PATCH')
+          <input type="hidden" name="action" value="trash">
+          <button type="submit" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px; padding:11px 16px; background:#DC2626; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
+            <i class="fa-solid fa-trash-can"></i> Move to Trash
+          </button>
+        </form>
+
+        <form method="POST" action="{{ route('mailbox.external.state', $selected) }}">
+          @csrf @method('PATCH')
+          <input type="hidden" name="action" value="archive">
+          <button type="submit" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px; padding:11px 16px; background:#F1F5F9; color:#0F172A; border:1px solid #CBD5E1; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
+            <i class="fa-solid fa-box-archive"></i> Archive
+          </button>
+        </form>
+      </div>
+
+      {{-- Trash folder option (Delete Permanently) --}}
+      <div id="permanentDeleteOptions" style="display:none; flex-direction:column; gap:10px;">
+        <form method="POST" action="{{ route('mailbox.external.state', $selected) }}">
+          @csrf @method('PATCH')
+          <input type="hidden" name="action" value="delete_permanent">
+          <button type="submit" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px; padding:11px 16px; background:#DC2626; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
+            <i class="fa-solid fa-triangle-exclamation"></i> Permanently Delete
+          </button>
+        </form>
+      </div>
+
+      <div style="margin-top:16px; text-align:right;">
+        <button type="button" onclick="closeDeleteDialog()" style="background:none; border:none; color:#64748B; cursor:pointer; font-size:12.5px; font-weight:500; padding:4px 8px;">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function openDeleteDialog(isPermanent) {
+      const modal = document.getElementById('deleteModal');
+      const title = document.getElementById('deleteModalTitle');
+      const body = document.getElementById('deleteModalBody');
+      const stdOpts = document.getElementById('standardDeleteOptions');
+      const permOpts = document.getElementById('permanentDeleteOptions');
+
+      if (!modal) return;
+
+      if (isPermanent) {
+        title.innerHTML = '<i class="fa-solid fa-triangle-exclamation" style="color:#DC2626;"></i> Permanently Delete Email';
+        body.innerText = 'This email will be permanently deleted from your mailbox and cannot be recovered. Are you sure you want to proceed?';
+        stdOpts.style.display = 'none';
+        permOpts.style.display = 'flex';
+      } else {
+        title.innerHTML = '<i class="fa-solid fa-trash-can" style="color:#DC2626;"></i> Delete Email';
+        body.innerText = 'What would you like to do with this email? Select whether to move it to Trash or Archive it.';
+        stdOpts.style.display = 'flex';
+        permOpts.style.display = 'none';
+      }
+
+      modal.style.display = 'flex';
+    }
+
+    function closeDeleteDialog() {
+      const modal = document.getElementById('deleteModal');
+      if (modal) modal.style.display = 'none';
+    }
+  </script>
+@endif
 @endpush

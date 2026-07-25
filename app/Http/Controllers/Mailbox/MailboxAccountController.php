@@ -444,15 +444,33 @@ class MailboxAccountController extends Controller
     public function state(Request $request, MailboxEmail $mailboxEmail, ImapMailboxGateway $gateway): RedirectResponse
     {
         $this->authorize('view', $mailboxEmail->account);
-        $data = $request->validate(['action' => ['required', 'in:read,unread,star,unstar,archive,trash,spam,inbox']]);
+        $data = $request->validate(['action' => ['required', 'in:read,unread,star,unstar,archive,trash,spam,inbox,delete_permanent']]);
         $action = $data['action'];
         try {
-            if (in_array($action, ['read', 'unread'], true)) { $gateway->setFlag($mailboxEmail, 'Seen', $action === 'read'); $mailboxEmail->update(['is_read' => $action === 'read']); }
-            elseif (in_array($action, ['star', 'unstar'], true)) { $gateway->setFlag($mailboxEmail, 'Flagged', $action === 'star'); $mailboxEmail->update(['is_flagged' => $action === 'star']); }
-            else { $target = $mailboxEmail->account->folders()->where('special_use', $action)->firstOrFail(); $gateway->move($mailboxEmail, $target->remote_path); $mailboxEmail->delete(); }
-        } catch(Throwable $exception) { report($exception); return back()->withErrors(['message_state'=>'The provider did not accept this change. The message remains unchanged; retry after the connection recovers.']); }
+            if (in_array($action, ['read', 'unread'], true)) {
+                $gateway->setFlag($mailboxEmail, 'Seen', $action === 'read');
+                $mailboxEmail->update(['is_read' => $action === 'read']);
+            } elseif (in_array($action, ['star', 'unstar'], true)) {
+                $gateway->setFlag($mailboxEmail, 'Flagged', $action === 'star');
+                $mailboxEmail->update(['is_flagged' => $action === 'star']);
+            } elseif ($action === 'delete_permanent') {
+                try {
+                    $gateway->setFlag($mailboxEmail, 'Deleted', true);
+                } catch (Throwable $e) {
+                    report($e);
+                }
+                $mailboxEmail->delete();
+            } else {
+                $target = $mailboxEmail->account->folders()->where('special_use', $action)->firstOrFail();
+                $gateway->move($mailboxEmail, $target->remote_path);
+                $mailboxEmail->delete();
+            }
+        } catch(Throwable $exception) {
+            report($exception);
+            return back()->withErrors(['message_state'=>'The provider did not accept this change. The message remains unchanged; retry after the connection recovers.']);
+        }
         $this->audit->record($request->user(),'mailbox.email.state_changed','Updated an external email state',$mailboxEmail,['action'=>$action,'account_id'=>$mailboxEmail->mailbox_account_id],$request);
-        return back()->with('status', 'Message updated.');
+        return back()->with('status', $action === 'delete_permanent' ? 'Email permanently deleted.' : 'Message updated.');
     }
 
     public function attachment(Request $request, MailboxAttachment $mailboxAttachment): StreamedResponse
