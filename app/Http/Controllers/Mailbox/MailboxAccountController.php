@@ -401,10 +401,22 @@ class MailboxAccountController extends Controller
     public function send(SendExternalEmailRequest $request, MailboxAccount $mailboxAccount, SendExternalEmail $action): RedirectResponse
     {
         $this->authorize('send', $mailboxAccount);
-        try { $message = $action->execute($mailboxAccount, $request->user(), $request->validated()); }
-        catch(Throwable $exception) { return back()->withInput($request->safe()->except('attachments'))->withErrors(['send'=>'Email was not sent. The message was retained in Failed drafts so you can review and retry it.']); }
-        $this->audit->record($request->user(),'mailbox.email.sent','Sent an external email',$message,['account_id'=>$mailboxAccount->id,'provider_message_id'=>$message->provider_message_id],$request);
-        return back()->with('status', $message->provider_message_id ? "Email sent ({$message->provider_message_id})." : 'Email sent successfully.');
+        try {
+            $message = $action->execute($mailboxAccount, $request->user(), $request->validated());
+        } catch (Throwable $exception) {
+            return back()
+                ->withInput($request->safe()->except('attachments'))
+                ->withErrors(['send' => 'Email was not sent. The message was retained in Failed drafts so you can review and retry it.']);
+        }
+
+        $this->audit->record($request->user(), 'mailbox.email.sent', 'Sent an external email', $message, ['account_id' => $mailboxAccount->id, 'provider_message_id' => $message->provider_message_id], $request);
+
+        $inboxFolder = $mailboxAccount->folders()->where('special_use', 'inbox')->first();
+        $redirectUrl = $inboxFolder
+            ? route('mailbox.external.show', [$mailboxAccount, 'folder' => $inboxFolder->id])
+            : route('mailbox.external.show', $mailboxAccount);
+
+        return redirect($redirectUrl)->with('status', 'Email sent successfully.');
     }
 
     public function drafts(Request $request, MailboxAccount $mailboxAccount)
