@@ -442,7 +442,12 @@
         <span class="mbx-dot {{ $mailboxAccount->status === 'active' ? 'on' : '' }}"></span>
         <div class="mbx-ai">
           <strong>{{ $mailboxAccount->name }}</strong>
-          <small>{{ $mailboxAccount->email }}</small>
+          <small style="display:inline-flex; align-items:center; gap:4px;">
+            {{ $mailboxAccount->email }}
+            <button type="button" onclick="copyEmailToClipboard('{{ $mailboxAccount->email }}', event)" title="Copy email address" style="background:none; border:none; color:var(--c-muted); cursor:pointer; padding:1px 4px; font-size:11px; border-radius:3px;" onmouseover="this.style.color='var(--c-accent)'" onmouseout="this.style.color='var(--c-muted)'">
+              <i class="fa-regular fa-copy" aria-hidden="true"></i>
+            </button>
+          </small>
         </div>
         <i class="fa-solid fa-chevron-down" style="font-size:10px;color:var(--c-muted)" aria-hidden="true"></i>
       </summary>
@@ -453,7 +458,12 @@
             <span class="mbx-dot {{ $acct->status === 'active' ? 'on' : '' }}"></span>
             <div class="mbx-ai">
               <strong>{{ $acct->name }}</strong>
-              <small>{{ $acct->email }}</small>
+              <small style="display:inline-flex; align-items:center; gap:4px;">
+                {{ $acct->email }}
+                <button type="button" onclick="copyEmailToClipboard('{{ $acct->email }}', event)" title="Copy email address" style="background:none; border:none; color:var(--c-muted); cursor:pointer; padding:1px 4px; font-size:11px; border-radius:3px;" onmouseover="this.style.color='var(--c-accent)'" onmouseout="this.style.color='var(--c-muted)'">
+                  <i class="fa-regular fa-copy" aria-hidden="true"></i>
+                </button>
+              </small>
             </div>
             @if($acct->is($mailboxAccount))
               <i class="fa-solid fa-check" style="font-size:11px;color:var(--c-accent);margin-left:auto" aria-hidden="true"></i>
@@ -1113,6 +1123,59 @@
     function closeDeleteDialog() {
       const modal = document.getElementById('deleteModal');
       if (modal) modal.style.display = 'none';
+    }
+
+    function copyEmailToClipboard(email, event) {
+        if (event) {
+            event.stopPropagation();
+            event.preventDefault();
+        }
+        if (!email) return;
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(email).then(showCopyToast).catch(() => fallbackCopy(email));
+        } else {
+            fallbackCopy(email);
+        }
+    }
+
+    function fallbackCopy(email) {
+        const textarea = document.createElement('textarea');
+        textarea.value = email;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+            document.execCommand('copy');
+            showCopyToast();
+        } catch (err) {
+            console.error('Copy failed:', err);
+        } finally {
+            document.body.removeChild(textarea);
+        }
+    }
+
+    function showCopyToast() {
+        let toast = document.getElementById('copyToastNotification');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'copyToastNotification';
+            toast.style.cssText = 'position:fixed; bottom:24px; right:24px; background:#0F172A; color:#FFFFFF; padding:12px 20px; border-radius:10px; font-size:13px; font-weight:600; box-shadow:0 10px 25px -5px rgba(0,0,0,0.2); z-index:999999; display:flex; align-items:center; gap:8px; transition:opacity 0.3s ease, transform 0.3s ease; opacity:0; transform:translateY(12px); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;';
+            toast.innerHTML = '<i class="fa-solid fa-circle-check" style="color:#10B981; font-size:16px;"></i> <span>Email address copied successfully.</span>';
+            document.body.appendChild(toast);
+        }
+
+        setTimeout(() => {
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateY(0)';
+        }, 10);
+
+        clearTimeout(window.copyToastTimer);
+        window.copyToastTimer = setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(12px)';
+        }, 2800);
     }
   </script>
 @endif

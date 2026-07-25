@@ -346,7 +346,12 @@
               <img src="{{ route('mailbox.accounts.avatar', $account) }}" alt="{{ $account->name }}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:2px solid var(--ac-border-2); flex-shrink:0;">
               <div class="mac-acct-info">
                 <strong>{{ $account->name }}</strong>
-                <small>{{ $account->email }}</small>
+                <small style="display:inline-flex; align-items:center; gap:4px;">
+                  {{ $account->email }}
+                  <button type="button" onclick="copyEmailToClipboard('{{ $account->email }}', event)" title="Copy email address" style="background:none; border:none; color:#64748B; cursor:pointer; padding:1px 4px; font-size:11px; border-radius:3px;" onmouseover="this.style.color='#F58220'" onmouseout="this.style.color='#64748B'">
+                    <i class="fa-regular fa-copy" aria-hidden="true"></i>
+                  </button>
+                </small>
                 <span>{{ $account->emails_count }} messages &middot; {{ $account->unread_count }} unread</span>
               </div>
               <span class="mac-pill {{ $account->status === 'active' ? 'is-active' : '' }}">
@@ -384,7 +389,12 @@
                 <img src="{{ route('mailbox.accounts.avatar', $account) }}" alt="{{ $account->name }}" style="width:52px; height:52px; border-radius:50%; object-fit:cover; border:2px solid var(--ac-accent); flex-shrink:0;">
                 <div>
                   <h4 style="font-size:14px; font-weight:700; color:#0F172A; margin:0;">{{ $account->name }}</h4>
-                  <p style="font-size:12.5px; color:#64748B; margin:2px 0 0;">{{ $account->email }}</p>
+                  <p style="font-size:12.5px; color:#64748B; margin:2px 0 0; display:inline-flex; align-items:center; gap:4px;">
+                    {{ $account->email }}
+                    <button type="button" onclick="copyEmailToClipboard('{{ $account->email }}', event)" title="Copy email address" style="background:none; border:none; color:#64748B; cursor:pointer; padding:1px 4px; font-size:11px; border-radius:3px;" onmouseover="this.style.color='#F58220'" onmouseout="this.style.color='#64748B'">
+                      <i class="fa-regular fa-copy" aria-hidden="true"></i>
+                    </button>
+                  </p>
                 </div>
               </div>
               <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:12px; font-size:12.5px;">
@@ -394,7 +404,12 @@
                 </div>
                 <div style="background:#fff; padding:10px 14px; border-radius:6px; border:1px solid #E2E8F0;">
                   <span style="font-size:10.5px; color:#64748B; font-weight:700; text-transform:uppercase; letter-spacing:.05em;">Email Address</span>
-                  <div style="font-weight:600; color:#0F172A; margin-top:2px;">{{ $account->email }}</div>
+                  <div style="font-weight:600; color:#0F172A; margin-top:2px; display:inline-flex; align-items:center; gap:4px;">
+                    {{ $account->email }}
+                    <button type="button" onclick="copyEmailToClipboard('{{ $account->email }}', event)" title="Copy email address" style="background:none; border:none; color:#64748B; cursor:pointer; padding:1px 4px; font-size:11px; border-radius:3px;" onmouseover="this.style.color='#F58220'" onmouseout="this.style.color='#64748B'">
+                      <i class="fa-regular fa-copy" aria-hidden="true"></i>
+                    </button>
+                  </div>
                 </div>
                 <div style="background:#fff; padding:10px 14px; border-radius:6px; border:1px solid #E2E8F0;">
                   <span style="font-size:10.5px; color:#64748B; font-weight:700; text-transform:uppercase; letter-spacing:.05em;">Username</span>
@@ -788,6 +803,59 @@ function toggleAccountPanel(panelId) {
         });
     }
     panel.style.display = isOpen ? 'none' : 'block';
+}
+
+function copyEmailToClipboard(email, event) {
+    if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+    }
+    if (!email) return;
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(email).then(showCopyToast).catch(() => fallbackCopy(email));
+    } else {
+        fallbackCopy(email);
+    }
+}
+
+function fallbackCopy(email) {
+    const textarea = document.createElement('textarea');
+    textarea.value = email;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+        document.execCommand('copy');
+        showCopyToast();
+    } catch (err) {
+        console.error('Copy failed:', err);
+    } finally {
+        document.body.removeChild(textarea);
+    }
+}
+
+function showCopyToast() {
+    let toast = document.getElementById('copyToastNotification');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'copyToastNotification';
+        toast.style.cssText = 'position:fixed; bottom:24px; right:24px; background:#0F172A; color:#FFFFFF; padding:12px 20px; border-radius:10px; font-size:13px; font-weight:600; box-shadow:0 10px 25px -5px rgba(0,0,0,0.2); z-index:999999; display:flex; align-items:center; gap:8px; transition:opacity 0.3s ease, transform 0.3s ease; opacity:0; transform:translateY(12px); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;';
+        toast.innerHTML = '<i class="fa-solid fa-circle-check" style="color:#10B981; font-size:16px;"></i> <span>Email address copied successfully.</span>';
+        document.body.appendChild(toast);
+    }
+
+    setTimeout(() => {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateY(0)';
+    }, 10);
+
+    clearTimeout(window.copyToastTimer);
+    window.copyToastTimer = setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(12px)';
+    }, 2800);
 }
 </script>
 @endpush
