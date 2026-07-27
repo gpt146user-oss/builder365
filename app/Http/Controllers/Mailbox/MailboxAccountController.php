@@ -293,8 +293,10 @@ class MailboxAccountController extends Controller
             $selected = $request->filled('message')
                 ? $mailboxAccount->outboxMessages()
                     ->with('attachments')
-                    ->findOrFail($request->integer('message'))
-                : $emails->first();
+                    ->find($request->integer('message'))
+                : null;
+            
+            $selected ??= $emails->first();
     
             // Thread = single outbox message (outbox messages are standalone)
             $threadMessages = collect([$selected])->filter();
@@ -336,8 +338,10 @@ class MailboxAccountController extends Controller
                 ? $mailboxAccount->emails()
                     ->with('attachments')
                     ->where('is_deleted', false)
-                    ->findOrFail($request->integer('message'))
-                : $emails->first();
+                    ->find($request->integer('message'))
+                : null;
+            
+            $selected ??= $emails->first();
     
             // Build conversation thread from shared thread_key or message headers
             $threadKey = $selected?->thread_key;
@@ -473,6 +477,60 @@ class MailboxAccountController extends Controller
         }
         $this->audit->record($request->user(),'mailbox.email.state_changed','Updated an external email state',$mailboxEmail,['action'=>$action,'account_id'=>$mailboxEmail->mailbox_account_id],$request);
         return back()->with('status', $action === 'delete_permanent' ? 'Email permanently deleted.' : 'Message updated.');
+    }
+
+    public function bulkState(Request $request, MailboxAccount $mailboxAccount, ImapMailboxGateway $gateway): RedirectResponse
+    {
+        $this->authorize('view', $mailboxAccount);
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+            'action' => ['required', 'in:read,unread,star,unstar,archive,trash,spam,inbox,delete_permanent'],
+        ]);
+
+        $emails = $mailboxAccount->emails()->whereIn('id', $data['ids'])->get();
+        $action = $data['action'];
+        $count = $emails->count();
+
+        foreach ($emails as $mailboxEmail) {
+            try {
+                if (in_array($action, ['read', 'unread'], true)) {
+                    $gateway->setFlag($mailboxEmail, 'Seen', $action === 'read');
+                    $mailboxEmail->update(['is_read' => $action === 'read']);
+                } elseif (in_array($action, ['star', 'unstar'], true)) {
+                    $gateway->setFlag($mailboxEmail, 'Flagged', $action === 'star');
+                    $mailboxEmail->update(['is_flagged' => $action === 'star']);
+                } elseif ($action === 'delete_permanent') {
+                    try {
+                        $gateway->setFlag($mailboxEmail, 'Deleted', true);
+                    } catch (Throwable $e) {
+                        report($e);
+                    }
+                    $mailboxEmail->delete();
+                } else {
+                    $target = $mailboxAccount->folders()->where('special_use', $action)->first();
+                    if ($target) {
+                        $gateway->move($mailboxEmail, $target->remote_path);
+                    }
+                    $mailboxEmail->delete();
+                }
+            } catch (Throwable $e) {
+                report($e);
+            }
+        }
+
+        $this->audit->record($request->user(), 'mailbox.email.bulk_action', 'Bulk updated external emails', $mailboxAccount, ['action' => $action, 'count' => $count], $request);
+
+        $msg = match ($action) {
+            'trash' => $count . ' ' . str('email')->plural($count) . ' moved to Trash.',
+            'archive' => $count . ' ' . str('email')->plural($count) . ' archived.',
+            'delete_permanent' => $count . ' ' . str('email')->plural($count) . ' permanently deleted.',
+            'read' => $count . ' ' . str('email')->plural($count) . ' marked as read.',
+            'unread' => $count . ' ' . str('email')->plural($count) . ' marked as unread.',
+            default => 'Selected emails updated.',
+        };
+
+        return back()->with('status', $msg);
     }
 
     public function attachment(Request $request, MailboxAttachment $mailboxAttachment): StreamedResponse

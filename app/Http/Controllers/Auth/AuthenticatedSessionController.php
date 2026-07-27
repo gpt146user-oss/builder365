@@ -23,7 +23,7 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
         app(SecurityAuditService::class)->loginSucceeded($request->user(), $request);
 
-        return redirect()->intended(route('builder360.dashboard', absolute: false));
+        return redirect()->intended(route('collaboration.tasks.index', absolute: false));
     }
 
     public function destroy(LogoutRequest $request, SecurityAuditService $securityAudit): RedirectResponse

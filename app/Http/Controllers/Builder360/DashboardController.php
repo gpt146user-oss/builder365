@@ -6,16 +6,12 @@ use App\Application\Dashboard\Actions\ShowRoleDashboard;
 use App\Application\Dashboard\Data\DashboardContextData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Builder360\DashboardRequest;
-use Illuminate\View\View;
+use Illuminate\Http\RedirectResponse;
 
 class DashboardController extends Controller
 {
-    public function __invoke(DashboardRequest $request, ShowRoleDashboard $action): View
+    public function __invoke(DashboardRequest $request): RedirectResponse
     {
-        $page = $action->execute($request->user(), DashboardContextData::fromRequest($request));
-
-        return view('builder360.classic.dashboard', [
-            'page' => $page,
-        ]);
+        return redirect()->route('collaboration.tasks.index');
     }
 }

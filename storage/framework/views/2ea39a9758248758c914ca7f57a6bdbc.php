@@ -1,2 +1,0 @@
-<div <?php echo e($attributes->class(['b360-tabs'])); ?> role="tablist"><?php echo e($slot); ?></div>
-<?php /**PATH C:\Users\Mataji\Desktop\Codex1\Builder360\laravel-builder360\resources\views\components\ui\tab-list.blade.php ENDPATH**/ ?>

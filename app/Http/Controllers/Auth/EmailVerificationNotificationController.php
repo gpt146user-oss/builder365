@@ -12,7 +12,7 @@ class EmailVerificationNotificationController extends Controller
     public function store(SendEmailVerificationNotificationRequest $request, SecurityAuditService $securityAudit): RedirectResponse
     {
         if ($request->user()->hasVerifiedEmail()) {
-            return redirect()->intended(route('builder360.dashboard', absolute: false));
+            return redirect()->intended(route('collaboration.tasks.index', absolute: false));
         }
 
         $request->user()->sendEmailVerificationNotification();

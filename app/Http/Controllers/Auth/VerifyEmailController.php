@@ -13,7 +13,7 @@ class VerifyEmailController extends Controller
     public function __invoke(EmailVerificationRequest $request, SecurityAuditService $securityAudit): RedirectResponse
     {
         if ($request->user()->hasVerifiedEmail()) {
-            return redirect()->intended(route('builder360.dashboard', absolute: false));
+            return redirect()->intended(route('collaboration.tasks.index', absolute: false));
         }
 
         if ($request->user()->markEmailAsVerified()) {
@@ -22,7 +22,7 @@ class VerifyEmailController extends Controller
         }
 
         return redirect()
-            ->intended(route('builder360.dashboard', absolute: false))
+            ->intended(route('collaboration.tasks.index', absolute: false))
             ->with('status', 'Your email address has been verified.');
     }
 }

@@ -579,6 +579,24 @@
       </a>
     </nav>
 
+    {{-- Bulk Action Bar --}}
+    @php $isTrashView = ($folder?->special_use === 'trash'); @endphp
+    <div id="bulkActionBar" style="display:none; align-items:center; justify-content:space-between; background:#FFF7ED; border:1px solid #FFEDD5; padding:8px 14px; margin:6px 10px; border-radius:8px; font-size:12.5px; color:#9A3412; font-weight:600;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <input type="checkbox" id="selectAllEmailsChk" onclick="toggleSelectAllEmails(this)" style="cursor:pointer; accent-color:var(--c-accent, #F5852B); width:15px; height:15px;">
+        <span id="bulkSelectedCount">0 selected</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <button type="button" class="mbx-btn danger" onclick="openBulkDeleteDialog({{ $isTrashView ? 'true' : 'false' }})" style="padding:4px 10px; font-size:11.5px;">
+          <i class="fa-solid {{ $isTrashView ? 'fa-trash-can' : 'fa-trash' }}" aria-hidden="true"></i>
+          {{ $isTrashView ? 'Delete permanently' : 'Delete selected' }}
+        </button>
+        <button type="button" class="mbx-btn" onclick="submitBulkAction('read')" style="padding:4px 10px; font-size:11.5px;">
+          <i class="fa-regular fa-envelope-open" aria-hidden="true"></i> Mark read
+        </button>
+      </div>
+    </div>
+
     
     <div class="mbx-rows">
       @forelse($emails as $email)
@@ -665,6 +683,16 @@
           href="{{ $msgUrl }}"
           aria-label="{{ $subject }} {{ $isOutboxMsg ? 'to ' . ($toLine ?? '') : 'from ' . $fname }}">
     
+          {{-- Checkbox for multi-select bulk actions --}}
+          @if(!$isOutboxMsg)
+            <input type="checkbox"
+                   class="mbx-email-select-chk"
+                   value="{{ $email->id }}"
+                   onclick="event.stopPropagation(); onEmailCheckChange(this);"
+                   aria-label="Select email"
+                   style="margin-right:4px; cursor:pointer; accent-color:var(--c-accent, #F5852B); width:15px; height:15px; flex-shrink:0;">
+          @endif
+
           {{-- Star (hide for outbox) --}}
           @if(!$isOutboxMsg)
             <span class="mbx-rstar" aria-hidden="true">{{ $isFlagged ? '★' : '☆' }}</span>
@@ -1045,23 +1073,23 @@
 {{-- ════════════════════════════════════════════════════════
      EMAIL DELETE WORKFLOW CONFIRMATION MODAL
      ════════════════════════════════════════════════════════ --}}
-@if($selected)
-  <div id="deleteModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(15,23,42,0.55); backdrop-filter:blur(3px); z-index:99999; align-items:center; justify-content:center;">
-    <div style="background:#fff; border-radius:14px; width:92%; max-width:440px; padding:24px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.15); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
-        <h3 id="deleteModalTitle" style="font-size:16px; font-weight:700; color:#0F172A; margin:0; display:flex; align-items:center; gap:8px;">
-          <i class="fa-solid fa-trash-can" style="color:#DC2626;"></i> Delete Email
-        </h3>
-        <button type="button" onclick="closeDeleteDialog()" style="background:none; border:none; color:#94A3B8; cursor:pointer; font-size:16px; padding:4px;"><i class="fa-solid fa-xmark"></i></button>
-      </div>
+<div id="deleteModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(15,23,42,0.55); backdrop-filter:blur(3px); z-index:99999; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:14px; width:92%; max-width:440px; padding:24px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.15); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+      <h3 id="deleteModalTitle" style="font-size:16px; font-weight:700; color:#0F172A; margin:0; display:flex; align-items:center; gap:8px;">
+        <i class="fa-solid fa-trash-can" style="color:#DC2626;"></i> Delete Email
+      </h3>
+      <button type="button" onclick="closeDeleteDialog()" style="background:none; border:none; color:#94A3B8; cursor:pointer; font-size:16px; padding:4px;"><i class="fa-solid fa-xmark"></i></button>
+    </div>
 
-      <p id="deleteModalBody" style="font-size:13px; color:#475569; margin:0 0 20px; line-height:1.5;">
-        What would you like to do with this email?
-      </p>
+    <p id="deleteModalBody" style="font-size:13px; color:#475569; margin:0 0 20px; line-height:1.5;">
+      What would you like to do with this email?
+    </p>
 
-      {{-- Standard folder options (Move to Trash / Archive) --}}
-      <div id="standardDeleteOptions" style="display:flex; flex-direction:column; gap:10px;">
-        <form method="POST" action="{{ route('mailbox.external.state', $selected) }}">
+    {{-- Standard folder options (Move to Trash / Archive) --}}
+    <div id="standardDeleteOptions" style="display:flex; flex-direction:column; gap:10px;">
+      @if($selected)
+        <form id="singleTrashForm" method="POST" action="{{ route('mailbox.external.state', $selected) }}">
           @csrf @method('PATCH')
           <input type="hidden" name="action" value="trash">
           <button type="submit" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px; padding:11px 16px; background:#DC2626; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
@@ -1069,61 +1097,176 @@
           </button>
         </form>
 
-        <form method="POST" action="{{ route('mailbox.external.state', $selected) }}">
+        <form id="singleArchiveForm" method="POST" action="{{ route('mailbox.external.state', $selected) }}">
           @csrf @method('PATCH')
           <input type="hidden" name="action" value="archive">
           <button type="submit" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px; padding:11px 16px; background:#F1F5F9; color:#0F172A; border:1px solid #CBD5E1; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
             <i class="fa-solid fa-box-archive"></i> Archive
           </button>
         </form>
-      </div>
+      @endif
 
-      {{-- Trash folder option (Delete Permanently) --}}
-      <div id="permanentDeleteOptions" style="display:none; flex-direction:column; gap:10px;">
-        <form method="POST" action="{{ route('mailbox.external.state', $selected) }}">
+      {{-- Bulk action buttons --}}
+      <div id="bulkButtonsContainer" style="display:none; flex-direction:column; gap:10px;">
+        <button type="button" onclick="submitBulkAction('trash')" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px; padding:11px 16px; background:#DC2626; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
+          <i class="fa-solid fa-trash-can"></i> Move Selected to Trash
+        </button>
+        <button type="button" onclick="submitBulkAction('archive')" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px; padding:11px 16px; background:#F1F5F9; color:#0F172A; border:1px solid #CBD5E1; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
+          <i class="fa-solid fa-box-archive"></i> Archive Selected
+        </button>
+      </div>
+    </div>
+
+    {{-- Trash folder option (Delete Permanently) --}}
+    <div id="permanentDeleteOptions" style="display:none; flex-direction:column; gap:10px;">
+      @if($selected)
+        <form id="singlePermDeleteForm" method="POST" action="{{ route('mailbox.external.state', $selected) }}">
           @csrf @method('PATCH')
           <input type="hidden" name="action" value="delete_permanent">
           <button type="submit" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px; padding:11px 16px; background:#DC2626; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
             <i class="fa-solid fa-triangle-exclamation"></i> Permanently Delete
           </button>
         </form>
-      </div>
+      @endif
 
-      <div style="margin-top:16px; text-align:right;">
-        <button type="button" onclick="closeDeleteDialog()" style="background:none; border:none; color:#64748B; cursor:pointer; font-size:12.5px; font-weight:500; padding:4px 8px;">Cancel</button>
+      <div id="bulkPermButtonsContainer" style="display:none;">
+        <button type="button" onclick="submitBulkAction('delete_permanent')" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px; padding:11px 16px; background:#DC2626; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
+          <i class="fa-solid fa-triangle-exclamation"></i> Permanently Delete Selected
+        </button>
       </div>
     </div>
+
+    <div style="margin-top:16px; text-align:right;">
+      <button type="button" onclick="closeDeleteDialog()" style="background:none; border:none; color:#64748B; cursor:pointer; font-size:12.5px; font-weight:500; padding:4px 8px;">Cancel</button>
+    </div>
   </div>
+</div>
 
-  <script>
-    function openDeleteDialog(isPermanent) {
-      const modal = document.getElementById('deleteModal');
-      const title = document.getElementById('deleteModalTitle');
-      const body = document.getElementById('deleteModalBody');
-      const stdOpts = document.getElementById('standardDeleteOptions');
-      const permOpts = document.getElementById('permanentDeleteOptions');
+<script>
+  let isBulkMode = false;
 
-      if (!modal) return;
+  function getSelectedEmailIds() {
+    return Array.from(document.querySelectorAll('.mbx-email-select-chk:checked')).map(chk => chk.value);
+  }
 
-      if (isPermanent) {
-        title.innerHTML = '<i class="fa-solid fa-triangle-exclamation" style="color:#DC2626;"></i> Permanently Delete Email';
-        body.innerText = 'This email will be permanently deleted from your mailbox and cannot be recovered. Are you sure you want to proceed?';
-        stdOpts.style.display = 'none';
-        permOpts.style.display = 'flex';
-      } else {
-        title.innerHTML = '<i class="fa-solid fa-trash-can" style="color:#DC2626;"></i> Delete Email';
-        body.innerText = 'What would you like to do with this email? Select whether to move it to Trash or Archive it.';
-        stdOpts.style.display = 'flex';
-        permOpts.style.display = 'none';
-      }
+  function onEmailCheckChange() {
+    const selectedIds = getSelectedEmailIds();
+    const count = selectedIds.length;
+    const bar = document.getElementById('bulkActionBar');
+    const countLabel = document.getElementById('bulkSelectedCount');
+    const selectAllChk = document.getElementById('selectAllEmailsChk');
 
-      modal.style.display = 'flex';
+    if (bar) {
+      bar.style.display = count > 0 ? 'flex' : 'none';
+    }
+    if (countLabel) {
+      countLabel.innerText = count + (count === 1 ? ' email selected' : ' emails selected');
     }
 
-    function closeDeleteDialog() {
-      const modal = document.getElementById('deleteModal');
-      if (modal) modal.style.display = 'none';
+    const allChks = document.querySelectorAll('.mbx-email-select-chk');
+    if (selectAllChk && allChks.length > 0) {
+      selectAllChk.checked = count === allChks.length;
     }
+  }
+
+  function toggleSelectAllEmails(masterChk) {
+    const isChecked = masterChk.checked;
+    document.querySelectorAll('.mbx-email-select-chk').forEach(chk => {
+      chk.checked = isChecked;
+    });
+    onEmailCheckChange();
+  }
+
+  function openDeleteDialog(isPermanent) {
+    isBulkMode = false;
+    showDeleteModalUI(isPermanent, false, 1);
+  }
+
+  function openBulkDeleteDialog(isPermanent) {
+    const selectedIds = getSelectedEmailIds();
+    if (selectedIds.length === 0) return;
+    isBulkMode = true;
+    showDeleteModalUI(isPermanent, true, selectedIds.length);
+  }
+
+  function showDeleteModalUI(isPermanent, isBulk, count) {
+    const modal = document.getElementById('deleteModal');
+    const title = document.getElementById('deleteModalTitle');
+    const body = document.getElementById('deleteModalBody');
+    const stdOpts = document.getElementById('standardDeleteOptions');
+    const permOpts = document.getElementById('permanentDeleteOptions');
+
+    const singleTrashForm = document.getElementById('singleTrashForm');
+    const singleArchiveForm = document.getElementById('singleArchiveForm');
+    const bulkBtns = document.getElementById('bulkButtonsContainer');
+
+    const singlePermForm = document.getElementById('singlePermDeleteForm');
+    const bulkPermBtns = document.getElementById('bulkPermButtonsContainer');
+
+    if (!modal) return;
+
+    if (isPermanent) {
+      title.innerHTML = '<i class="fa-solid fa-triangle-exclamation" style="color:#DC2626;"></i> ' + (isBulk ? 'Permanently Delete Selected Emails' : 'Permanently Delete Email');
+      body.innerText = isBulk
+        ? 'These ' + count + ' emails will be permanently deleted from your mailbox and cannot be recovered. Are you sure you want to proceed?'
+        : 'This email will be permanently deleted from your mailbox and cannot be recovered. Are you sure you want to proceed?';
+      stdOpts.style.display = 'none';
+      permOpts.style.display = 'flex';
+
+      if (singlePermForm) singlePermForm.style.display = isBulk ? 'none' : 'block';
+      if (bulkPermBtns) bulkPermBtns.style.display = isBulk ? 'block' : 'none';
+    } else {
+      title.innerHTML = '<i class="fa-solid fa-trash-can" style="color:#DC2626;"></i> ' + (isBulk ? 'Delete ' + count + ' Selected Emails' : 'Delete Email');
+      body.innerText = isBulk
+        ? 'What would you like to do with the ' + count + ' selected emails? Select whether to move them to Trash or Archive them.'
+        : 'What would you like to do with this email? Select whether to move it to Trash or Archive it.';
+      stdOpts.style.display = 'flex';
+      permOpts.style.display = 'none';
+
+      if (singleTrashForm) singleTrashForm.style.display = isBulk ? 'none' : 'block';
+      if (singleArchiveForm) singleArchiveForm.style.display = isBulk ? 'none' : 'block';
+      if (bulkBtns) bulkBtns.style.display = isBulk ? 'flex' : 'none';
+    }
+
+    modal.style.display = 'flex';
+  }
+
+  function closeDeleteDialog() {
+    const modal = document.getElementById('deleteModal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  function submitBulkAction(action) {
+    const selectedIds = getSelectedEmailIds();
+    if (selectedIds.length === 0) return;
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{{ route("mailbox.accounts.bulk-state", $mailboxAccount) }}';
+
+    const csrf = document.createElement('input');
+    csrf.type = 'hidden';
+    csrf.name = '_token';
+    csrf.value = '{{ csrf_token() }}';
+    form.appendChild(csrf);
+
+    const act = document.createElement('input');
+    act.type = 'hidden';
+    act.name = 'action';
+    act.value = action;
+    form.appendChild(act);
+
+    selectedIds.forEach(id => {
+      const idInput = document.createElement('input');
+      idInput.type = 'hidden';
+      idInput.name = 'ids[]';
+      idInput.value = id;
+      form.appendChild(idInput);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+  }
 
     function copyEmailToClipboard(email, event) {
         if (event) {
@@ -1178,5 +1321,4 @@
         }, 2800);
     }
   </script>
-@endif
 @endpush
