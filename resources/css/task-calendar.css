@@ -545,8 +545,9 @@ html[data-theme="dark"] {
 .tm-board-nav .tm-iconbtn{width:32px;height:32px}
 .tm-kanban-viewport{flex:1 1 auto;min-width:0;min-height:0;max-height:calc(100vh - 165px);overflow-x:auto;overflow-y:hidden;scrollbar-gutter:stable both-edges;overscroll-behavior-inline:contain;scroll-snap-type:x proximity}
 .tm-kanban-track{display:flex;align-items:stretch;gap:14px;width:max-content;min-width:100%;height:100%;max-height:100%;padding:12px 18px 28px;box-sizing:border-box}
-.tm-kanban-track>.tm-col{width:310px;flex:0 0 310px;display:flex;flex-direction:column;height:100%;max-height:calc(100vh - 200px);min-height:0;overflow:hidden;scroll-snap-align:start;transition:border-color .15s,background .15s,box-shadow .15s}
+.tm-kanban-track>.tm-col{width:310px;flex:0 0 310px;display:flex;flex-direction:column;height:calc(100vh - 220px)!important;max-height:calc(100vh - 220px)!important;min-height:380px!important;overflow:hidden!important;scroll-snap-align:start;transition:border-color .15s,background .15s,box-shadow .15s}
 .tm-kanban-track>.tm-col.is-drop-target{border-color:var(--accent);background:var(--accent-soft);box-shadow:inset 0 0 0 2px var(--accent)}
+.tm-card{flex:0 0 auto!important;flex-shrink:0!important;min-height:max-content!important}
 .tm-card.is-dragging{opacity:.45;transform:scale(.985)}
 .tm-card-drag-handle{position:absolute;z-index:3;top:8px;right:8px;width:28px;height:28px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--text-3);cursor:grab;display:grid;place-items:center;opacity:0;transition:opacity .12s,background .12s}
 .tm-card:hover .tm-card-drag-handle,.tm-card-drag-handle:focus-visible{opacity:1;background:var(--surface-3)}

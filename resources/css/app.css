@@ -2059,7 +2059,7 @@ textarea.chat-field { min-height: 122px; padding: 14px 15px; line-height: 1.5; r
 .tm-col-body::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 0.6); }
 .tm-col-body.dragover { background: var(--accent-soft); border-radius: 0 0 13px 13px; outline: 2px dashed var(--accent); outline-offset: -6px; }
 
-.tm-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: 11px; padding: 12px; cursor: grab; transition: box-shadow .12s, transform .12s; position: relative; }
+.tm-card { flex: 0 0 auto !important; flex-shrink: 0 !important; min-height: max-content !important; background: var(--surface-2); border: 1px solid var(--border); border-radius: 11px; padding: 12px; cursor: grab; transition: box-shadow .12s, transform .12s; position: relative; }
 .tm-card:hover { box-shadow: var(--shadow-sm); border-color: var(--border-strong); }
 .tm-card.dragging { opacity: .4; }
 .tm-card-top { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; }

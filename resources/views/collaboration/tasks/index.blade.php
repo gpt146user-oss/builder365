@@ -543,8 +543,10 @@
     border: 1px solid var(--tm-border);
     border-radius: var(--tm-r-lg);
     display: flex; flex-direction: column;
-    height: 100%; max-height: calc(100vh - 200px); min-height: 0;
-    overflow: hidden;
+    height: calc(100vh - 220px) !important;
+    max-height: calc(100vh - 220px) !important;
+    min-height: 380px !important;
+    overflow: hidden !important;
   }
 
   /* Column header */
@@ -553,7 +555,8 @@
     padding: 11px 14px;
     border-bottom: 1px solid var(--tm-border);
     background: var(--tm-panel);
-    flex-shrink: 0;
+    flex: 0 0 auto !important;
+    flex-shrink: 0 !important;
   }
   .tm-col-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
   .tm-col-title { font-size: 12px; font-weight: 700; color: var(--tm-text); flex: 1; }
@@ -567,17 +570,20 @@
 
   /* Column body (scrollable) */
   .tm-col-body {
-    flex: 1 1 auto; min-height: 0; max-height: calc(100vh - 255px); overflow-y: auto; overscroll-behavior: contain; padding: 10px;
-    display: flex; flex-direction: column; gap: 10px;
-    scrollbar-width: thin;
+    flex: 1 1 auto !important; min-height: 0 !important; height: 100% !important; overflow-y: auto !important; overscroll-behavior: contain; padding: 10px;
+    display: flex !important; flex-direction: column !important; gap: 10px !important;
+    scrollbar-width: thin !important;
   }
-  .tm-col-body::-webkit-scrollbar { width: 5px; }
-  .tm-col-body::-webkit-scrollbar-track { background: transparent; }
-  .tm-col-body::-webkit-scrollbar-thumb { background: rgba(100,116,139,0.35); border-radius: 4px; }
-  .tm-col-body::-webkit-scrollbar-thumb:hover { background: rgba(100,116,139,0.6); }
+  .tm-col-body::-webkit-scrollbar { width: 6px !important; }
+  .tm-col-body::-webkit-scrollbar-track { background: transparent !important; }
+  .tm-col-body::-webkit-scrollbar-thumb { background: rgba(100,116,139,0.4) !important; border-radius: 4px !important; }
+  .tm-col-body::-webkit-scrollbar-thumb:hover { background: rgba(100,116,139,0.7) !important; }
 
   /* ── TASK CARD ── */
   .tm-card {
+    flex: 0 0 auto !important;
+    flex-shrink: 0 !important;
+    min-height: max-content !important;
     background: var(--tm-panel);
     border: 1px solid var(--tm-border);
     border-radius: var(--tm-r-md);
@@ -1585,7 +1591,7 @@
                     <input type="hidden" name="scope" value="{{ $scope }}"><input type="hidden" name="view" value="{{ $view }}">
                     <label class="tm-search"><i class="fa-solid fa-magnifying-glass"></i><input type="search" name="q" value="{{ $filters['q'] ?? '' }}" placeholder="Search tasks..."></label>
                     <select class="tm-select tm-filter-select" name="priority" aria-label="Priority"><option value="">All priorities</option>@foreach ($priorities as $value => $label)<option value="{{ $value }}" @selected(($filters['priority'] ?? null) === $value)>{{ $label }}</option>@endforeach</select>
-                    <select class="tm-select tm-filter-select" name="project_id" aria-label="Project"><option value="">All projects</option>@foreach ($projects as $project)<option value="{{ $project->id }}" @selected(($filters['project_id'] ?? null) == $project->id)>{{ $project->code }}</option>@endforeach</select>
+                    <!-- <select class="tm-select tm-filter-select" name="project_id" aria-label="Project"><option value="">All projects</option>@foreach ($projects as $project)<option value="{{ $project->id }}" @selected(($filters['project_id'] ?? null) == $project->id)>{{ $project->code }}</option>@endforeach</select> -->
                     <button class="tm-tbtn" type="submit"><i class="fa-solid fa-filter"></i> Apply</button>
                     <a class="tm-tbtn" href="{{ route('collaboration.tasks.export', $taskQuery(['format' => 'csv'])) }}"><i class="fa-solid fa-download"></i> CSV</a>
                     <a class="tm-tbtn" href="{{ route('collaboration.tasks.index', ['scope' => $scope, 'view' => $view]) }}">Reset</a>
