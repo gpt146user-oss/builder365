@@ -643,3 +643,10 @@ Route::middleware(['auth', 'account.active', 'verified', 'company.active', 'thro
 
 Route::get('/calendar/invitations/{calendarEventAttendee}', [\App\Http\Controllers\Collaboration\CalendarInvitationController::class, 'showGuest'])->middleware('signed')->name('calendar.guest-invitations.show');
 Route::post('/calendar/invitations/{calendarEventAttendee}', [\App\Http\Controllers\Collaboration\CalendarInvitationController::class, 'respondGuest'])->middleware(['signed','throttle:20,1'])->name('calendar.guest-invitations.respond');
+
+Route::get('/errors/{code}', function (string $code) {
+    if (view()->exists("errors.{$code}")) {
+        return response()->view("errors.{$code}", [], (int) $code);
+    }
+    abort(404);
+})->where('code', '[0-9]+');
