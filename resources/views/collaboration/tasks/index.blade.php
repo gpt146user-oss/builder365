@@ -500,23 +500,50 @@
   /* ═══════════════════════════════════════════════════
     KANBAN BOARD
     ═══════════════════════════════════════════════════ */
+  .tm-board-shell {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .tm-kanban-viewport {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    max-height: calc(100vh - 165px);
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  .tm-kanban-track {
+    display: flex;
+    align-items: stretch;
+    gap: 14px;
+    width: max-content;
+    min-width: 100%;
+    height: 100%;
+    max-height: 100%;
+    padding: 12px 18px 28px;
+    box-sizing: border-box;
+  }
   .tm-kanban {
     flex: 1; display: flex; gap: 12px;
     overflow-x: auto; overflow-y: hidden;
     padding: 16px;
-    align-items: flex-start;
+    align-items: stretch;
   }
   .tm-kanban::-webkit-scrollbar { height: 5px; }
   .tm-kanban::-webkit-scrollbar-thumb { background: var(--tm-border-2); border-radius: 4px; }
 
   /* Column */
   .tm-col {
-    width: 272px; flex-shrink: 0;
+    width: 310px; flex: 0 0 310px;
     background: var(--tm-surface);
     border: 1px solid var(--tm-border);
     border-radius: var(--tm-r-lg);
     display: flex; flex-direction: column;
-    max-height: 100%;
+    height: 100%; max-height: calc(100vh - 200px); min-height: 0;
     overflow: hidden;
   }
 
@@ -540,11 +567,14 @@
 
   /* Column body (scrollable) */
   .tm-col-body {
-    flex: 1; overflow-y: auto; padding: 8px;
-    display: flex; flex-direction: column; gap: 6px;
+    flex: 1 1 auto; min-height: 0; max-height: calc(100vh - 255px); overflow-y: auto; overscroll-behavior: contain; padding: 10px;
+    display: flex; flex-direction: column; gap: 10px;
+    scrollbar-width: thin;
   }
-  .tm-col-body::-webkit-scrollbar { width: 3px; }
-  .tm-col-body::-webkit-scrollbar-thumb { background: var(--tm-border-2); border-radius: 3px; }
+  .tm-col-body::-webkit-scrollbar { width: 5px; }
+  .tm-col-body::-webkit-scrollbar-track { background: transparent; }
+  .tm-col-body::-webkit-scrollbar-thumb { background: rgba(100,116,139,0.35); border-radius: 4px; }
+  .tm-col-body::-webkit-scrollbar-thumb:hover { background: rgba(100,116,139,0.6); }
 
   /* ── TASK CARD ── */
   .tm-card {

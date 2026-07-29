@@ -23,7 +23,7 @@
 @source "../js/**/*.js";
 
 @theme {
-    --color-builder-accent: #5146e5;
+    --color-builder-accent: #F6740C;
     --color-builder-accent-soft: #ecebff;
     --color-builder-surface: #ffffff;
     --color-builder-canvas: #f6f7fb;
@@ -38,15 +38,15 @@ html[data-theme="dark"] {
     color-scheme: dark;
     --b360-bg: #0f172a;
     --b360-surface: #111827;
-    --b360-border: #334155;
+    --b360-border: #f6740c;
     --b360-text: #f8fafc;
     --b360-muted: #94a3b8;
-    --b360-accent: #8b80ff;
-    --b360-accent-soft: #292653;
+    --b360-accent: #ee8632;
+    --b360-accent-soft: #d8670a;
     --b360-shadow: 0 18px 50px rgb(0 0 0 / 0.28);
     --bg: var(--b360-bg);
     --surface: var(--b360-surface);
-    --surface-2: #1e293b;
+    --surface-2: #f6740c;
     --line: var(--b360-border);
     --text: var(--b360-text);
     --muted: var(--b360-muted);
@@ -87,7 +87,7 @@ html[data-theme="dark"] .b360-classic :is(.b360-muted, small, .blade-workspace-d
 }
 
 html[data-theme="dark"] .b360-topbar {
-    background: rgb(17 24 39 / 0.94);
+    background: #f6740c;
 }
 
 /*
