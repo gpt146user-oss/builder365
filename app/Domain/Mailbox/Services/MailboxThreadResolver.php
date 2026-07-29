@@ -4,6 +4,7 @@ namespace App\Domain\Mailbox\Services;
 
 use App\Models\MailboxAccount;
 use App\Models\MailboxEmail;
+use App\Models\MailboxOutboxMessage;
 use Illuminate\Support\Str;
 
 final class MailboxThreadResolver
@@ -24,7 +25,7 @@ final class MailboxThreadResolver
         // Collect all referenced message IDs in priority order: [references..., inReplyTo]
         $referencedIds = array_values(array_unique(array_filter([...$references, $inReplyTo])));
 
-        // Step 1: Look up existing MailboxEmail in DB by referenced Message-IDs
+        // Step 1: Look up existing MailboxEmail or MailboxOutboxMessage in DB by referenced Message-IDs
         if (! empty($referencedIds)) {
             $existingThreadEmail = MailboxEmail::query()
                 ->where('mailbox_account_id', $account->id)
@@ -35,24 +36,49 @@ final class MailboxThreadResolver
             if ($existingThreadEmail?->thread_key) {
                 return $existingThreadEmail->thread_key;
             }
+
+            $existingOutboxEmail = MailboxOutboxMessage::query()
+                ->where('mailbox_account_id', $account->id)
+                ->where(function ($query) use ($referencedIds) {
+                    $query->whereIn('provider_message_id', $referencedIds)
+                        ->orWhereIn('client_token', $referencedIds);
+                })
+                ->whereNotNull('thread_key')
+                ->first();
+
+            if ($existingOutboxEmail?->thread_key) {
+                return $existingOutboxEmail->thread_key;
+            }
         }
 
-        // Step 2: Root message ID from References[0], In-Reply-To, or Message-ID
-        $rootId = $references[0] ?? $inReplyTo ?? $messageId;
-        if ($rootId !== null && $rootId !== '') {
-            return hash('sha256', 'msg:' . strtolower($rootId));
+        // Step 2: If explicit reference headers (In-Reply-To or References) are provided, use root reference ID
+        $explicitRootId = $references[0] ?? $inReplyTo;
+        if ($explicitRootId !== null && $explicitRootId !== '') {
+            return hash('sha256', 'msg:' . strtolower($explicitRootId));
         }
 
         // Step 3: Normalized Subject Fallback (Gmail Subject-based Threading)
         $normalizedSubject = $this->normalizeSubject($subject);
         if ($normalizedSubject !== '') {
-            $subjectMatches = MailboxEmail::query()
+            $subjectEmailMatch = MailboxEmail::query()
                 ->where('mailbox_account_id', $account->id)
                 ->whereNotNull('thread_key')
                 ->where('subject', '!=', '')
                 ->get(['id', 'subject', 'thread_key']);
 
-            foreach ($subjectMatches as $match) {
+            foreach ($subjectEmailMatch as $match) {
+                if ($this->normalizeSubject($match->subject) === $normalizedSubject) {
+                    return $match->thread_key;
+                }
+            }
+
+            $subjectOutboxMatch = MailboxOutboxMessage::query()
+                ->where('mailbox_account_id', $account->id)
+                ->whereNotNull('thread_key')
+                ->where('subject', '!=', '')
+                ->get(['id', 'subject', 'thread_key']);
+
+            foreach ($subjectOutboxMatch as $match) {
                 if ($this->normalizeSubject($match->subject) === $normalizedSubject) {
                     return $match->thread_key;
                 }
@@ -85,6 +111,25 @@ final class MailboxThreadResolver
 
             if ($key && $email->thread_key !== $key) {
                 $email->update(['thread_key' => $key]);
+            }
+        }
+
+        $outboxMessages = $account->outboxMessages()
+            ->oldest('created_at')
+            ->get();
+
+        foreach ($outboxMessages as $outbox) {
+            $refs = array_values(array_filter(explode(' ', (string) $outbox->references_header)));
+            $key = $this->resolveThreadKey(
+                $account,
+                $outbox->provider_message_id ?: $outbox->client_token,
+                $outbox->in_reply_to,
+                $refs,
+                $outbox->subject
+            );
+
+            if ($key && $outbox->thread_key !== $key) {
+                $outbox->update(['thread_key' => $key]);
             }
         }
     }

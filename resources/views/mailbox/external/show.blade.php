@@ -641,7 +641,7 @@
           } else {
             /* IMAP email: sender from from_addresses */
             $from    = collect($email->from_addresses ?? [])->first();
-            $fname   = $from['name'] ?? $from['email'] ?? 'Unknown';
+            $fname   = $email->thread_participants ?? ($from['name'] ?? $from['email'] ?? 'Unknown');
             $femail  = $from['email'] ?? '';
             $init    = strtoupper(mb_substr($fname, 0, 2));
             $col     = $avatarColor($femail ?: $fname);
@@ -650,8 +650,8 @@
               ? str($email->text_body)->squish()->limit(65)
               : str(strip_tags($email->html_body ?? ''))->squish()->limit(65);
             $msgTime   = $email->received_at;
-            $isRead    = $email->is_read;
-            $isFlagged = $email->is_flagged;
+            $isRead    = isset($email->thread_has_unread) ? !$email->thread_has_unread : $email->is_read;
+            $isFlagged = isset($email->thread_has_flagged) ? $email->thread_has_flagged : $email->is_flagged;
             $statePill = null;
     
             $msgUrl = route('mailbox.external.show', [
@@ -708,6 +708,9 @@
             <span class="mbx-rtop">
               <strong class="mbx-rfrom">
                 {{ $isOutboxMsg ? 'Me' : $fname }}
+                @if(!$isOutboxMsg && ($email->thread_count ?? 1) > 1)
+                  <span class="mbx-lcnt" style="font-size:10px; padding:1px 6px; margin-left:4px;" title="{{ $email->thread_count }} messages in thread">{{ $email->thread_count }}</span>
+                @endif
                 @if($statePill)
                   <span class="mbx-sp {{ $statePill[0] }}" style="font-size:9px;padding:1px 6px">{{ $statePill[1] }}</span>
                 @endif

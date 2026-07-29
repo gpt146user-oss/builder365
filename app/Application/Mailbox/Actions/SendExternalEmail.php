@@ -35,7 +35,10 @@ final readonly class SendExternalEmail
         if($outbox->state==='sent') return $outbox;
         try {
             $files=$outbox->attachments->map(fn($file)=>['path'=>Storage::disk($file->disk)->path($file->path),'name'=>$file->filename,'mime'=>$file->mime_type,'disposition'=>$file->disposition??'attachment','content_id'=>$file->content_id])->all();
-            $headers=array_filter(['In-Reply-To'=>$outbox->in_reply_to,'References'=>$outbox->references_header]);
+            $inReplyToHeader = $outbox->in_reply_to ? '<' . trim($outbox->in_reply_to, '<> ') . '>' : null;
+            $refsArray = array_values(array_filter(array_map(fn ($id) => '<' . trim($id, '<> ') . '>', preg_split('/\s+/', (string) $outbox->references_header) ?: [])));
+            $referencesHeader = implode(' ', $refsArray) ?: null;
+            $headers = array_filter(['In-Reply-To' => $inReplyToHeader, 'References' => $referencesHeader]);
             $text=$outbox->text_body??''; $signature=trim((string)($account->settings['signature_text']??'')); if($signature!==''&&!str_ends_with(trim($text),$signature))$text=rtrim($text)."\n\n-- \n".$signature;
             $html=$outbox->html_body ?: Str::markdown($text,['html_input'=>'strip','allow_unsafe_links'=>false]);
             if($signature!==''&&!str_contains(strip_tags($html),$signature)){$html.=Str::markdown("\n\n---\n".$signature,['html_input'=>'strip','allow_unsafe_links'=>false]);}

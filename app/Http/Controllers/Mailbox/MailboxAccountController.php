@@ -320,19 +320,81 @@ class MailboxAccountController extends Controller
             }
     
             if ($request->boolean('unread'))       { $query->where('is_read', false); }
-            if ($request->boolean('flagged'))       { $query->where('is_flagged', true); }
-            if ($request->boolean('attachments'))   { $query->where('has_attachments', true); }
+            if ($request->boolean('flagged'))      { $query->where('is_flagged', true); }
+            if ($request->boolean('attachments'))  { $query->where('has_attachments', true); }
     
-            match ($request->string('sort')->toString()) {
-                'oldest'  => $query->oldest('received_at'),
-                'subject' => $query->orderBy('subject'),
-                'sender'  => $query->orderBy('from_addresses'),
-                default   => $query->latest('received_at'),
+            $allFolderEmails = $query->get();
+
+            // Ensure all fetched emails have a thread_key
+            $threadResolver = app(\App\Domain\Mailbox\Services\MailboxThreadResolver::class);
+            foreach ($allFolderEmails as $email) {
+                if (! $email->thread_key) {
+                    $key = $threadResolver->resolveThreadKey(
+                        $mailboxAccount,
+                        $email->internet_message_id,
+                        $email->in_reply_to,
+                        $email->references ?? [],
+                        $email->subject
+                    );
+                    $email->update(['thread_key' => $key]);
+                }
+            }
+
+            // Group emails into conversation threads by thread_key
+            $groupedThreads = $allFolderEmails->groupBy(fn ($email) => $email->thread_key ?: ('single_' . $email->id));
+
+            $threadItems = collect();
+
+            foreach ($groupedThreads as $tKey => $groupEmails) {
+                $latestEmail = $groupEmails->sortByDesc(fn ($e) => $e->received_at ?? $e->created_at)->first();
+
+                $outboxCount = 0;
+                if (! str_starts_with((string) $tKey, 'single_')) {
+                    $outboxCount = $mailboxAccount->outboxMessages()
+                        ->where('thread_key', $tKey)
+                        ->where('state', 'sent')
+                        ->count();
+                }
+
+                $totalThreadCount = $groupEmails->count() + $outboxCount;
+                $hasUnread = $groupEmails->contains('is_read', false);
+                $hasFlagged = $groupEmails->contains('is_flagged', true);
+
+                $senders = $groupEmails->map(function ($e) {
+                    $from = collect($e->from_addresses ?? [])->first();
+                    return $from['name'] ?? $from['email'] ?? 'Unknown';
+                })->filter()->unique()->values();
+
+                if ($outboxCount > 0 && ! $senders->contains('Me')) {
+                    $senders->push('Me');
+                }
+
+                $latestEmail->thread_count = $totalThreadCount;
+                $latestEmail->thread_participants = $senders->join(', ');
+                $latestEmail->thread_has_unread = $hasUnread;
+                $latestEmail->thread_has_flagged = $hasFlagged;
+
+                $threadItems->push($latestEmail);
+            }
+
+            $sortedThreads = match ($request->string('sort')->toString()) {
+                'oldest'  => $threadItems->sortBy(fn ($t) => $t->received_at ?? $t->created_at),
+                'subject' => $threadItems->sortBy(fn ($t) => $t->subject),
+                'sender'  => $threadItems->sortBy(fn ($t) => $t->thread_participants),
+                default   => $threadItems->sortByDesc(fn ($t) => $t->received_at ?? $t->created_at),
             };
-    
-            $emails = $query
-                ->paginate($this->pagination->workspacePerPage())
-                ->withQueryString();
+
+            $perPage = $this->pagination->workspacePerPage();
+            $page = \Illuminate\Pagination\Paginator::resolveCurrentPage() ?: 1;
+            $pageItems = $sortedThreads->slice(($page - 1) * $perPage, $perPage)->values();
+
+            $emails = new \Illuminate\Pagination\LengthAwarePaginator(
+                $pageItems,
+                $sortedThreads->count(),
+                $perPage,
+                $page,
+                ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath(), 'query' => $request->query()]
+            );
     
             $selected = $request->filled('message')
                 ? $mailboxAccount->emails()
@@ -346,7 +408,6 @@ class MailboxAccountController extends Controller
             // Build conversation thread from shared thread_key or message headers
             $threadKey = $selected?->thread_key;
             if (! $threadKey && $selected) {
-                $threadResolver = app(\App\Domain\Mailbox\Services\MailboxThreadResolver::class);
                 $threadKey = $threadResolver->resolveThreadKey(
                     $mailboxAccount,
                     $selected->internet_message_id,
@@ -357,14 +418,28 @@ class MailboxAccountController extends Controller
                 $selected->update(['thread_key' => $threadKey]);
             }
 
-            $threadMessages = $threadKey
-                ? $mailboxAccount->emails()
+            if ($threadKey) {
+                $imapMsgs = $mailboxAccount->emails()
                     ->with('attachments')
                     ->where('thread_key', $threadKey)
                     ->where('is_deleted', false)
-                    ->oldest('received_at')
-                    ->get()
-                : collect([$selected])->filter();
+                    ->get();
+
+                $outboxMsgs = $mailboxAccount->outboxMessages()
+                    ->with('attachments')
+                    ->where('thread_key', $threadKey)
+                    ->where('state', 'sent')
+                    ->get();
+
+                $imapMsgIds = $imapMsgs->pluck('internet_message_id')->filter()->all();
+                $outboxMsgs = $outboxMsgs->reject(fn ($out) => $out->provider_message_id && in_array($out->provider_message_id, $imapMsgIds, true));
+
+                $threadMessages = $imapMsgs->concat($outboxMsgs)
+                    ->sortBy(fn ($msg) => $msg->sent_at ?? $msg->received_at ?? $msg->created_at)
+                    ->values();
+            } else {
+                $threadMessages = collect([$selected])->filter();
+            }
         }
     
         // ── Compose context (only relevant for IMAP messages) ─────────────

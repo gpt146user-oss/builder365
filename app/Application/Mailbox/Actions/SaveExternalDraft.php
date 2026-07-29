@@ -10,8 +10,13 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use App\Domain\Mailbox\Services\SafeEmailHtmlSanitizer;
 use App\Domain\Mailbox\Services\MailboxAttachmentInspector;
+use App\Domain\Mailbox\Services\MailboxThreadResolver;
 final class SaveExternalDraft {
-    public function __construct(private readonly SafeEmailHtmlSanitizer $html,private readonly MailboxAttachmentInspector $inspector) {}
+    public function __construct(
+        private readonly SafeEmailHtmlSanitizer $html,
+        private readonly MailboxAttachmentInspector $inspector,
+        private readonly MailboxThreadResolver $threadResolver = new MailboxThreadResolver()
+    ) {}
     public function execute(MailboxAccount $account,User $user,array $data): MailboxOutboxMessage {
         return DB::transaction(function() use($account,$user,$data): MailboxOutboxMessage {
             $draft=MailboxOutboxMessage::query()->where('mailbox_account_id',$account->id)->where('client_token',$data['client_token'])->lockForUpdate()->first();
@@ -21,7 +26,18 @@ final class SaveExternalDraft {
             $safeHtml=$this->html->sanitize($data['body_html']??null);
             $plain=trim((string)($data['body']??''));
             if($plain===''&&$safeHtml!==''){$plain=trim(html_entity_decode(strip_tags(str_replace(['<br>','<br/>','<br />','</p>','</div>'],["\n","\n","\n","\n","\n"],$safeHtml)),ENT_QUOTES|ENT_HTML5,'UTF-8'));}
-            $draft->fill(['state'=>$data['state'],'to_addresses'=>$this->addresses($data['to']??[]),'cc_addresses'=>$this->addresses($data['cc']??[]),'bcc_addresses'=>$this->addresses($data['bcc']??[]),'subject'=>$data['subject']??null,'text_body'=>$plain,'html_body'=>$safeHtml?:null,'in_reply_to'=>$data['in_reply_to']??null,'references_header'=>$data['references']??null,'scheduled_for'=>$data['state']==='scheduled'?($data['scheduled_for']??null):null,'last_error'=>null,'lock_version'=>(int)($draft->lock_version??0)+1])->save();
+            $inReplyTo=$data['in_reply_to']??null;
+            $referencesHeader=$data['references']??null;
+            $refs=array_values(array_filter(explode(' ',(string)$referencesHeader)));
+            $subject=$data['subject']??null;
+            $threadKey=$this->threadResolver->resolveThreadKey(
+                $account,
+                $draft->provider_message_id?:$draft->client_token,
+                $inReplyTo,
+                $refs,
+                $subject
+            );
+            $draft->fill(['state'=>$data['state'],'to_addresses'=>$this->addresses($data['to']??[]),'cc_addresses'=>$this->addresses($data['cc']??[]),'bcc_addresses'=>$this->addresses($data['bcc']??[]),'subject'=>$subject,'text_body'=>$plain,'html_body'=>$safeHtml?:null,'in_reply_to'=>$inReplyTo,'references_header'=>$referencesHeader,'thread_key'=>$threadKey,'scheduled_for'=>$data['state']==='scheduled'?($data['scheduled_for']??null):null,'last_error'=>null,'lock_version'=>(int)($draft->lock_version??0)+1])->save();
             $draft->attachments()->whereIn('id',$data['remove_attachment_ids']??[])->get()->each(function($file): void { Storage::disk($file->disk)->delete($file->path); $file->delete(); });
             $this->storeFiles($draft,$account,$data['attachments']??[],'attachment');
             $this->storeFiles($draft,$account,$data['inline_images']??[],'inline');
