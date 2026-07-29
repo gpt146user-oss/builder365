@@ -5,7 +5,7 @@
     --people-border: var(--b360-border, #e3e7ef);
     --people-text: var(--b360-text, #0b1020);
     --people-muted: var(--b360-muted, #667085);
-    --people-accent: var(--b360-accent, #5146e5);
+    --people-accent: var(--b360-accent, #F58220);
     --people-accent-soft: var(--b360-accent-soft, #ecebff);
     --people-shadow: var(--b360-shadow, 0 18px 50px rgb(15 23 42 / 8%));
     display: grid;

@@ -35,11 +35,17 @@
         position: fixed;
         inset: 0;
         z-index: 999999;
-        background: var(--stage);
+
+        /* Transparent overlay */
+        background: rgba(255, 255, 255, 0.15);
+
+        /* Blur the content behind */
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+
         display: grid;
         place-items: center;
         transition: opacity 0.4s ease, visibility 0.4s ease;
-        cursor: pointer;
     }
 
     .brij-loader-screen.fade-out {
@@ -59,6 +65,7 @@
         isolation: isolate;
         animation: brij-settle var(--cycle) cubic-bezier(.45, 0, .2, 1) infinite;
     }
+     
 
     .brij-minimal-loader__logo {
         position: relative;
@@ -219,19 +226,16 @@
 
         // Fail-safe: Hide when window load completes
         window.addEventListener('load', function() {
-            setTimeout(hideBrijLoader, 800);
+            setTimeout(hideBrijLoader, 1000);
         });
 
-        // FORCEFUL IDLE FAIL-SAFE: Hard hide after 10s idle under any condition
         hardForceHideTimer = setTimeout(hideBrijLoader, 10000);
 
-        // Fail-safe on tab/window focus
         window.addEventListener('pageshow', hideBrijLoader);
         window.addEventListener('focus', function() {
-            setTimeout(hideBrijLoader, 800);
+            setTimeout(hideBrijLoader, 1000);
         });
 
-        // Re-show loader on navigation with 5s fail-safe
         window.addEventListener('beforeunload', function() {
             showBrijLoader();
         });
@@ -245,3 +249,5 @@
         });
     })();
 </script>
+
+  
