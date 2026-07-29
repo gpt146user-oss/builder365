@@ -325,18 +325,19 @@ class MailboxAccountController extends Controller
     
             $allFolderEmails = $query->get();
 
-            // Ensure all fetched emails have a thread_key
+            // Ensure all fetched emails are properly threaded with up-to-date thread_keys
             $threadResolver = app(\App\Domain\Mailbox\Services\MailboxThreadResolver::class);
             foreach ($allFolderEmails as $email) {
-                if (! $email->thread_key) {
-                    $key = $threadResolver->resolveThreadKey(
-                        $mailboxAccount,
-                        $email->internet_message_id,
-                        $email->in_reply_to,
-                        $email->references ?? [],
-                        $email->subject
-                    );
+                $key = $threadResolver->resolveThreadKey(
+                    $mailboxAccount,
+                    $email->internet_message_id,
+                    $email->in_reply_to,
+                    $email->references ?? [],
+                    $email->subject
+                );
+                if ($key && $email->thread_key !== $key) {
                     $email->update(['thread_key' => $key]);
+                    $email->thread_key = $key;
                 }
             }
 

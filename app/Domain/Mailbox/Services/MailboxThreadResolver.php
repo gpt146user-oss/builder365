@@ -51,13 +51,8 @@ final class MailboxThreadResolver
             }
         }
 
-        // Step 2: If explicit reference headers (In-Reply-To or References) are provided, use root reference ID
-        $explicitRootId = $references[0] ?? $inReplyTo;
-        if ($explicitRootId !== null && $explicitRootId !== '') {
-            return hash('sha256', 'msg:' . strtolower($explicitRootId));
-        }
-
-        // Step 3: Normalized Subject Fallback (Gmail Subject-based Threading)
+        // Step 2: Normalized Subject Matching (Gmail Subject-based Threading)
+        // If an existing conversation thread for this mailbox account shares the same normalized subject, link to it!
         $normalizedSubject = $this->normalizeSubject($subject);
         if ($normalizedSubject !== '') {
             $subjectEmailMatch = MailboxEmail::query()
@@ -83,7 +78,15 @@ final class MailboxThreadResolver
                     return $match->thread_key;
                 }
             }
+        }
 
+        // Step 3: Explicit reference header fallback or normalized subject hash
+        $explicitRootId = $references[0] ?? $inReplyTo;
+        if ($explicitRootId !== null && $explicitRootId !== '') {
+            return hash('sha256', 'msg:' . strtolower($explicitRootId));
+        }
+
+        if ($normalizedSubject !== '') {
             return hash('sha256', 'subj:' . $account->id . ':' . $normalizedSubject);
         }
 

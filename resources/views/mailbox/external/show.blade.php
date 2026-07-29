@@ -333,12 +333,20 @@
         display:flex; align-items:center; gap:11px;
         padding:12px 16px;
         background:var(--c-surface2); border-bottom:1px solid var(--c-border);
+        cursor:pointer; user-select:none; transition:background .14s ease;
         }
+        .mbx-cs:hover { background:var(--c-accent-l) !important; }
         .mbx-cs .mbx-av { width:34px; height:34px; border-radius:9px; }
         .mbx-ci { flex:1; min-width:0; }
         .mbx-ci strong { display:block; font-size:13.5px; font-weight:700; color:var(--c-text); }
         .mbx-ci small   { display:block; font-size:12px; color:var(--c-muted); margin-top:1px; }
         .mbx-ct { font-size:11.5px; color:var(--c-muted); white-space:nowrap; flex-shrink:0; }
+        .mbx-chevron { font-size:11px; color:var(--c-muted); transition:transform .2s ease; margin-left:8px; flex-shrink:0; }
+        .mbx-card.is-expanded .mbx-chevron { transform:rotate(180deg); }
+        .mbx-card.is-collapsed .mbx-cs { border-bottom:none; }
+        .mbx-card.is-collapsed .mbx-cb,
+        .mbx-card.is-collapsed .mbx-ca { display:none !important; }
+        .mbx-card.is-collapsed { border-color:var(--c-border); margin-bottom:8px; }
 
         /* Outbox state pills */
         .mbx-sp { display:inline-flex; align-items:center; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; padding:2px 8px; border-radius:20px; margin-left:8px; vertical-align:middle; }
@@ -758,9 +766,30 @@
       {{-- Subject header — pinned --}}
       <header class="mbx-rh">
         <div class="mbx-rh-copy">
-          <div class="mbx-msg-count">
-            <i class="fa-regular fa-comments" style="font-size:12px" aria-hidden="true"></i>
-            {{ $threadMessages->count() }} {{ str('message')->plural($threadMessages->count()) }}
+          <div class="mbx-msg-count" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span>
+              <i class="fa-regular fa-comments" style="font-size:12px" aria-hidden="true"></i>
+              {{ $threadMessages->count() }} {{ str('message')->plural($threadMessages->count()) }}
+            </span>
+            @if($threadMessages->count() > 1)
+              <button type="button"
+                      id="mbxThreadExpandAllBtn"
+                      onclick="toggleExpandAllThreads()"
+                      title="Expand or collapse all messages"
+                      style="background:var(--c-surface2); border:1px solid var(--c-border); border-radius:6px; padding:2px 8px; font-size:11px; font-weight:600; color:var(--c-sub); cursor:pointer; display:inline-flex; align-items:center; gap:5px; transition:all .14s;">
+                <i class="fa-solid fa-up-right-and-down-left-from-center" id="mbxExpandIcon" aria-hidden="true" style="font-size:10px;"></i>
+                <span id="mbxExpandLabel">Expand all</span>
+              </button>
+
+              <button type="button"
+                      id="mbxThreadSortBtn"
+                      onclick="toggleThreadSortOrder()"
+                      title="Toggle thread order (Oldest / Newest)"
+                      style="background:var(--c-surface2); border:1px solid var(--c-border); border-radius:6px; padding:2px 8px; font-size:11px; font-weight:600; color:var(--c-sub); cursor:pointer; display:inline-flex; align-items:center; gap:5px; transition:all .14s;">
+                <i class="fa-solid fa-arrow-up-wide-short" id="mbxSortIcon" aria-hidden="true" style="font-size:10px;"></i>
+                <span id="mbxSortLabel">Oldest first</span>
+              </button>
+            @endif
           </div>
           <h2>{{ $selected->subject ?: '(No subject)' }}</h2>
         </div>
@@ -770,7 +799,7 @@
       </header>
 
       {{-- ── Thread: ONLY THIS SCROLLS ── --}}
-      <div class="mbx-thread" role="list" aria-label="Message thread">
+      <div class="mbx-thread" role="list" aria-label="Message thread" data-sort-order="asc">
 
         @foreach($threadMessages as $msg)
           @php
@@ -795,6 +824,9 @@
             $si  = strtoupper(mb_substr($sn, 0, 2));
             $sc  = $avatarColor($se ?: $sn);
 
+            /* Default: Open ONLY the single latest message ($loop->last); collapse all earlier ones */
+            $isExpanded = $loop->last || ($threadMessages->count() === 1);
+
             /* Sanitise HTML body */
             $sh = null;
             if ($msg->html_body) {
@@ -810,12 +842,12 @@
             }
           @endphp
 
-          <article class="mbx-card {{ $msg->id === $selected->id ? 'cur' : '' }}"
+          <article class="mbx-card {{ $msg->id === $selected->id ? 'cur' : '' }} {{ $isExpanded ? 'is-expanded' : 'is-collapsed' }}"
                    role="listitem"
                    data-message-id="{{ $msg->id }}">
 
-            {{-- Sender row --}}
-            <div class="mbx-cs">
+            {{-- Sender row (Click header to toggle open/close) --}}
+            <div class="mbx-cs" onclick="toggleCardExpand(this.parentElement)">
               <span class="mbx-av" style="background:{{ $sc }}" aria-hidden="true">{{ $si }}</span>
               <div class="mbx-ci">
                 <strong>
@@ -829,6 +861,7 @@
               <time class="mbx-ct" datetime="{{ $st?->toIso8601String() }}">
                 {{ $st?->format('d M Y, h:i A') }}
               </time>
+              <i class="fa-solid fa-chevron-down mbx-chevron" aria-hidden="true"></i>
             </div>
 
             {{-- Body --}}
@@ -1322,6 +1355,61 @@
             toast.style.opacity = '0';
             toast.style.transform = 'translateY(12px)';
         }, 2800);
+    }
+
+    function toggleCardExpand(cardEl) {
+        if (!cardEl) return;
+        cardEl.classList.toggle('is-expanded');
+        cardEl.classList.toggle('is-collapsed');
+    }
+
+    function toggleExpandAllThreads() {
+        const threadContainer = document.querySelector('.mbx-thread');
+        if (!threadContainer) return;
+
+        const cards = Array.from(threadContainer.querySelectorAll('.mbx-card'));
+        if (!cards.length) return;
+
+        const hasCollapsed = cards.some(c => c.classList.contains('is-collapsed'));
+
+        cards.forEach(card => {
+            if (hasCollapsed) {
+                card.classList.remove('is-collapsed');
+                card.classList.add('is-expanded');
+            } else {
+                card.classList.remove('is-expanded');
+                card.classList.add('is-collapsed');
+            }
+        });
+
+        const label = document.getElementById('mbxExpandLabel');
+        if (label) {
+            label.innerText = hasCollapsed ? 'Collapse all' : 'Expand all';
+        }
+    }
+
+    function toggleThreadSortOrder() {
+        const threadContainer = document.querySelector('.mbx-thread');
+        if (!threadContainer) return;
+
+        const cards = Array.from(threadContainer.querySelectorAll('.mbx-card'));
+        if (cards.length < 2) return;
+
+        const isAsc = threadContainer.getAttribute('data-sort-order') !== 'desc';
+        const newSort = isAsc ? 'desc' : 'asc';
+        threadContainer.setAttribute('data-sort-order', newSort);
+
+        cards.reverse().forEach(card => threadContainer.appendChild(card));
+
+        const icon = document.getElementById('mbxSortIcon');
+        const label = document.getElementById('mbxSortLabel');
+
+        if (icon) {
+            icon.className = newSort === 'asc' ? 'fa-solid fa-arrow-up-wide-short' : 'fa-solid fa-arrow-down-short-wide';
+        }
+        if (label) {
+            label.innerText = newSort === 'asc' ? 'Oldest first' : 'Newest first';
+        }
     }
   </script>
 @endpush
