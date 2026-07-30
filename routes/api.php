@@ -47,10 +47,10 @@ Route::middleware(['auth:sanctum', 'account.active'])->group(function (): void {
         Route::patch('/conversations/{conversation}/read', [ChatApiController::class, 'markRead'])->name('conversations.read');
 
         // Messages
+        // Messages & Reactions
         Route::get('/conversations/{conversation}/messages', [ChatApiController::class, 'messages'])->name('conversations.messages.index');
         Route::post('/conversations/{conversation}/messages', [ChatApiController::class, 'sendMessage'])->name('conversations.messages.store');
-
-        // Reactions
+        Route::delete('/messages/{message}', [ChatApiController::class, 'deleteMessage'])->name('messages.destroy');
         Route::patch('/messages/{message}/reaction', [ChatApiController::class, 'reaction'])->name('messages.reaction');
 
         // Attachments

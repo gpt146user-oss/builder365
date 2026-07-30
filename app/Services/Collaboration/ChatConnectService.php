@@ -477,6 +477,52 @@ class ChatConnectService
         });
     }
 
+    public function canDeleteMessage(User $user, ChatMessage $message): bool
+    {
+        if ((int) $message->sender_user_id === (int) $user->id) {
+            return true;
+        }
+
+        $conversation = $message->conversation;
+        if (! $conversation) {
+            return false;
+        }
+
+        $membership = $conversation->membershipFor($user);
+
+        return $user->hasPermission('*')
+            || (int) $conversation->owner_user_id === (int) $user->id
+            || ($membership !== null && $membership->can_manage_members)
+            || $this->access->can($user, 'can_manage_members');
+    }
+
+    public function deleteMessage(ChatMessage $message, User $actor, ?Request $request = null): bool
+    {
+        return DB::transaction(function () use ($message, $actor, $request): bool {
+            $conversation = $message->conversation()->firstOrFail();
+            $this->assertConversationWritable($conversation, $actor);
+
+            if (! $this->canDeleteMessage($actor, $message)) {
+                throw new AuthorizationException('You cannot delete this message.');
+            }
+
+            $message->forceFill([
+                'deleted_by_user_id' => $actor->id,
+            ])->save();
+
+            $deleted = (bool) $message->delete();
+
+            $this->auditLogger->record($actor, 'chat.message.deleted', 'Soft deleted Chat Connect message', $message, [
+                'conversation_key' => $conversation->conversation_key,
+                'message_number' => $message->message_number,
+            ], $request);
+
+            event(new \App\Events\Chat\ChatMessageDeleted($message->id, $conversation->id, $actor->id));
+
+            return $deleted;
+        });
+    }
+
     public function markRead(ChatConversation $conversation, User $actor, ?Request $request = null): int
     {
         return DB::transaction(function () use ($conversation, $actor, $request): int {
@@ -844,22 +890,27 @@ class ChatConnectService
 
     private function storeAttachment(ChatMessage $message, UploadedFile $file, User $actor, string $messageType, int $durationSeconds = 0): ChatMessageAttachment
     {
+        $mime = $file->getMimeType() ?: 'application/octet-stream';
+        $extension = strtolower($file->getClientOriginalExtension() ?: $file->guessExtension() ?: '');
+        $audioExtensions = ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'oga', 'webm', '3gp', '3gpp', 'amr', 'flac', 'opus', 'wma'];
+        $isAudio = str_starts_with($mime, 'audio/') || in_array($mime, ['application/ogg', 'application/x-ogg'], true) || in_array($extension, $audioExtensions, true);
+
         $path = 'chat/'.$message->company_id.'/'.$message->chat_conversation_id;
-        $storedName = Str::uuid()->toString().'.'.($file->guessExtension() ?: $file->getClientOriginalExtension() ?: 'bin');
+        $storedName = Str::uuid()->toString().'.'.($file->guessExtension() ?: $extension ?: 'bin');
         $storedPath = $file->storeAs($path, $storedName, 'local');
 
         return ChatMessageAttachment::create([
             'chat_message_id' => $message->id,
             'company_id' => $message->company_id,
             'uploader_user_id' => $actor->id,
-            'type' => $messageType === 'voice_note' ? 'voice_note' : 'file',
+            'type' => ($messageType === 'voice_note' || $isAudio) ? 'voice_note' : 'file',
             'disk' => 'local',
             'path' => $storedPath,
             'original_filename' => $file->getClientOriginalName(),
-            'mime_type' => $file->getMimeType() ?: 'application/octet-stream',
+            'mime_type' => $mime,
             'size_bytes' => $file->getSize() ?: 0,
             'checksum_sha256' => hash_file('sha256', $file->getRealPath()),
-            'duration_seconds' => $messageType === 'voice_note' ? max(0, $durationSeconds) : null,
+            'duration_seconds' => ($messageType === 'voice_note' || $isAudio) ? max(0, $durationSeconds) : null,
             'scan_status' => 'pending',
             'metadata' => ['storage_visibility' => 'private'],
         ]);

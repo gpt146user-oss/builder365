@@ -24,6 +24,12 @@ class ChatConnectFeatureTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->withoutVite();
+    }
+
     public function test_internal_user_can_use_classic_blade_chat_connect_workspace(): void
     {
         $this->seed();
@@ -137,6 +143,48 @@ class ChatConnectFeatureTest extends TestCase
         ]);
 
         $this->assertNotNull($fileResponse->json('data.attachments.0.download_url'));
+    }
+
+    public function test_api_chat_message_with_audio_file_attachment_succeeds(): void
+    {
+        $this->seed();
+        Storage::fake('local');
+
+        $sales = User::where('email', 'priya.nair@builder360.test')->firstOrFail();
+        $finance = User::where('email', 'suresh.iyer@builder360.test')->firstOrFail();
+
+        $conversation = ChatConversation::create([
+            'company_id' => $sales->company_id,
+            'conversation_key' => 'CHAT-TEST-AUDIO',
+            'type' => 'direct_message',
+            'title' => 'Audio API Test',
+            'created_by_user_id' => $sales->id,
+            'last_message_at' => now(),
+        ]);
+        $conversation->activeMembers()->createMany([
+            ['user_id' => $sales->id, 'joined_at' => now(), 'can_post' => true, 'can_upload' => true],
+            ['user_id' => $finance->id, 'joined_at' => now(), 'can_post' => true, 'can_upload' => true],
+        ]);
+
+        $response = $this->actingAs($sales, 'sanctum')
+            ->postJson("/api/chat/conversations/{$conversation->id}/messages", [
+                'body' => 'Audio test message',
+                'message_type' => 'file',
+                'attachments' => [
+                    UploadedFile::fake()->create('sample-voice.mp3', 25, 'audio/mpeg'),
+                    UploadedFile::fake()->create('recording.m4a', 30, 'audio/m4a'),
+                    UploadedFile::fake()->create('audio-note.wav', 40, 'audio/wav'),
+                ],
+            ])
+            ->assertCreated()
+            ->assertJsonPath('message', 'Message sent.')
+            ->assertJsonPath('data.attachments.0.filename', 'sample-voice.mp3')
+            ->assertJsonPath('data.attachments.1.filename', 'recording.m4a')
+            ->assertJsonPath('data.attachments.2.filename', 'audio-note.wav');
+
+        $this->assertDatabaseHas('chat_message_attachments', [
+            'original_filename' => 'sample-voice.mp3',
+        ]);
     }
 
     public function test_chat_poll_creation_voting_and_closing_are_permission_checked(): void
@@ -638,5 +686,69 @@ class ChatConnectFeatureTest extends TestCase
             'project_id' => $project->id,
             'member_user_ids' => [$finance->id],
         ])->assertUnprocessable()->assertJsonValidationErrors('type');
+    }
+
+    public function test_sender_can_soft_delete_chat_message_and_it_is_hidden_from_both_sender_and_receiver(): void
+    {
+        $this->seed();
+
+        $sales = User::where('email', 'priya.nair@builder360.test')->firstOrFail();
+        $finance = User::where('email', 'suresh.iyer@builder360.test')->firstOrFail();
+
+        $conversation = ChatConversation::create([
+            'company_id' => $sales->company_id,
+            'conversation_key' => 'CHAT-TEST-DELETE',
+            'type' => 'direct_message',
+            'title' => 'Soft Delete Test',
+            'created_by_user_id' => $sales->id,
+            'last_message_at' => now(),
+        ]);
+        $conversation->activeMembers()->createMany([
+            ['user_id' => $sales->id, 'joined_at' => now(), 'can_post' => true],
+            ['user_id' => $finance->id, 'joined_at' => now(), 'can_post' => true],
+        ]);
+
+        $messageResponse = $this->actingAs($sales)
+            ->postJson("/api/chat/conversations/{$conversation->id}/messages", [
+                'body' => 'Secret message to be deleted',
+            ])
+            ->assertCreated();
+
+        $messageId = $messageResponse->json('data.id');
+        $message = ChatMessage::findOrFail($messageId);
+
+        // Verify message is visible before delete to receiver
+        $this->actingAs($finance)
+            ->get(route('collaboration.chat.conversations.timeline', $conversation))
+            ->assertSee('Secret message to be deleted');
+
+        // Delete message as sender (API)
+        $this->actingAs($sales)
+            ->deleteJson("/api/chat/messages/{$messageId}")
+            ->assertOk()
+            ->assertJsonPath('message', 'Message deleted.');
+
+        // Soft delete DB assertions
+        $this->assertSoftDeleted('chat_messages', ['id' => $messageId]);
+        $this->assertDatabaseHas('chat_messages', [
+            'id' => $messageId,
+            'deleted_by_user_id' => $sales->id,
+        ]);
+
+        // Verify NOT visible to Sender
+        $this->actingAs($sales)
+            ->get(route('collaboration.chat.conversations.timeline', $conversation))
+            ->assertDontSee('Secret message to be deleted');
+
+        // Verify NOT visible to Receiver
+        $this->actingAs($finance)
+            ->get(route('collaboration.chat.conversations.timeline', $conversation))
+            ->assertDontSee('Secret message to be deleted');
+
+        // Verify NOT visible in API messages response
+        $this->actingAs($finance)
+            ->getJson("/api/chat/conversations/{$conversation->id}/messages")
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
     }
 }

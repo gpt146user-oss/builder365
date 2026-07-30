@@ -46,7 +46,7 @@ class ChatMessageResource extends JsonResource
                 'duration_seconds' => $attachment->duration_seconds,
                 'scan_status' => $attachment->scan_status,
                 'download_url' => route('collaboration.chat.attachments.download', $attachment),
-                'preview_url' => str_starts_with((string) $attachment->mime_type, 'image/')
+                'preview_url' => (str_starts_with((string) $attachment->mime_type, 'image/') || str_starts_with((string) $attachment->mime_type, 'audio/'))
                     ? route('collaboration.chat.attachments.preview', $attachment)
                     : null,
                 'can_download' => $attachment->scan_status !== 'blocked',
@@ -85,7 +85,7 @@ class ChatMessageResource extends JsonResource
                 'read_at' => $read->read_at?->toISOString(),
             ])->values()->all()),
             'can_edit' => false,
-            'can_delete' => false,
+            'can_delete' => $user ? app(\App\Services\Collaboration\ChatConnectService::class)->canDeleteMessage($user, $this->resource) : false,
             'can_download' => true,
             'sent_at' => $this->sent_at?->toISOString(),
             'created_at' => $this->created_at?->toISOString(),

@@ -9,10 +9,7 @@
         <article class="b360-thread-message {{ $isMine ? 'is-mine' : '' }}" data-message-id="{{ $message->id }}">
             <x-ui.user-avatar :user="$message->sender" :label="$message->sender?->name ?? 'System'" class="b360-message-avatar" />
             <div class="b360-message-content">
-                <header>
-                    <strong>{{ $message->sender?->name ?? 'System' }}</strong>
-                    <small>{{ $message->created_at?->format('h:i A') }}</small>
-                </header>
+         
                 
                 @php
                     $parentMsg = $message->parent ?? ($message->parent_message_id ? \App\Models\ChatMessage::with('sender')->find($message->parent_message_id) : null);
@@ -81,8 +78,11 @@
                     </div>
                 @endif
 
-                
-                <footer class="b360-chat-message-actions" aria-label="Message reactions">
+                <header style="margin-top: 5px">
+                    <small>{{ $message->sender?->name ?? 'System' }}</small>
+                    <small>{{ $message->created_at?->format('h:i A') }}</small>
+                </header>
+                <footer class="b360-chat-message-actions" aria-label="Message reactions"style="margin-top: 5px !important">
                     <button
                         type="button"
                         class="b360-chat-reply-action"
@@ -103,10 +103,20 @@
                             <button type="submit" aria-label="React {{ $emoji }}">{{ $emoji }}</button>
                         </form>
                     @endforeach
+                    @if ($isMine || (auth()->user()?->hasPermission('*') || ($selectedConversation && $selectedConversation->membershipFor(auth()->user())?->can_manage_members)))
+                        <form method="POST" action="{{ route('collaboration.chat.messages.destroy', $message) }}" x-on:submit.prevent="deleteMessage">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="b360-chat-delete-action" title="Delete message" aria-label="Delete message" style="background:none; border:none; color:#EF4444; cursor:pointer; padding:2px 5px; opacity:0.7;" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0.7">
+                                <i class="fa-regular fa-trash-can" aria-hidden="true"></i>
+                            </button>
+                        </form>
+                    @endif
                     @if ($isMine)
                         <span class="b360-chat-read-state" title="{{ $allRead ? 'Read' : 'Delivered' }}">{{ $allRead ? '✓✓' : '✓' }}</span>
                     @endif
                 </footer>
+             
             </div>
         </article>
     @empty

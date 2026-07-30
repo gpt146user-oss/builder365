@@ -1500,6 +1500,7 @@ Alpine.data('chatRealtime', () => ({
 
                 this.echo.private(`chat.conversation.${conversationId}`)
                     .listen('.message.sent', () => this.handleConversationEvent())
+                    .listen('.message.deleted', () => this.handleConversationEvent())
                     .listen('.conversation.read', () => this.handleConversationEvent())
                     .listen('.poll.created', () => this.handleConversationEvent())
                     .listen('.poll.voted', () => this.handleConversationEvent())
@@ -1821,6 +1822,30 @@ Alpine.data('chatRealtime', () => ({
             await this.request(this.formAction(form), { method: 'POST', body: new FormData(form) });
             await Promise.all([this.refreshTimeline(false), this.refreshSidebar()]);
             this.autoMarkRead();
+        } catch (error) {
+            this.statusTone = 'error';
+            this.statusMessage = error.message;
+        } finally {
+            this.busy = false;
+        }
+    },
+
+    async deleteMessage(event) {
+        if (this.busy) {
+            return;
+        }
+
+        if (! window.confirm('Are you sure you want to delete this message?')) {
+            return;
+        }
+
+        const form = event.currentTarget;
+        this.busy = true;
+        this.statusMessage = '';
+
+        try {
+            await this.request(this.formAction(form), { method: 'POST', body: new FormData(form) });
+            await Promise.all([this.refreshTimeline(false), this.refreshSidebar()]);
         } catch (error) {
             this.statusTone = 'error';
             this.statusMessage = error.message;

@@ -564,6 +564,7 @@ Route::middleware(['auth', 'account.active', 'verified', 'company.active', 'thro
         Route::get('/chat/attachments/{attachment}/download', [CollaborationController::class, 'downloadChatAttachment'])->name('chat.attachments.download');
         Route::get('/chat/attachments/{attachment}/preview', [CollaborationController::class, 'previewChatAttachment'])->name('chat.attachments.preview');
         Route::patch('/chat/messages/{chatMessage}/reactions', [CollaborationController::class, 'updateChatMessageReaction'])->name('chat.messages.reactions.update');
+        Route::delete('/chat/messages/{chatMessage}', [CollaborationController::class, 'destroyChatMessage'])->name('chat.messages.destroy');
         Route::patch('/chat/conversations/{chatConversation}/read', [CollaborationController::class, 'markChatConversationRead'])->name('chat.conversations.read');
         Route::patch('/chat/conversations/{chatConversation}/archive', [CollaborationController::class, 'archiveChatConversation'])->name('chat.conversations.archive');
         Route::patch('/chat/conversations/{chatConversation}', [CollaborationController::class, 'updateChatConversation'])->name('chat.conversations.update');

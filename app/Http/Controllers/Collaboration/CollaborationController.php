@@ -42,6 +42,7 @@ use App\Application\Collaboration\Actions\MarkMailboxMessageRead;
 use App\Application\Collaboration\Actions\RequestWorkTaskTransfer;
 use App\Application\Collaboration\Actions\ResolveWorkTaskTransfer;
 use App\Application\Collaboration\Actions\SendChatMessage;
+use App\Application\Collaboration\Actions\DeleteChatMessage;
 use App\Application\Collaboration\Actions\SendMailboxMessage;
 use App\Application\Collaboration\Actions\UpdateCalendarEvent;
 use App\Application\Collaboration\Actions\UpdateWorkTask;
@@ -339,6 +340,22 @@ class CollaborationController extends Controller
             'message' => 'Reaction updated.',
             'data' => (new ChatMessageResource($message))->resolve($request),
         ]);
+    }
+
+    public function destroyChatMessage(Request $request, ChatMessage $chatMessage, DeleteChatMessage $action): JsonResponse|RedirectResponse
+    {
+        $action->execute($chatMessage, $request->user(), $request);
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'message' => 'Message deleted.',
+                'message_id' => $chatMessage->id,
+            ]);
+        }
+
+        return redirect()
+            ->route('collaboration.chat.index', ['conversation_id' => $chatMessage->chat_conversation_id])
+            ->with('status', 'Message deleted.');
     }
 
     public function markChatConversationRead(MarkChatConversationReadRequest $request, ChatConversation $chatConversation, MarkChatConversationRead $action): JsonResponse|RedirectResponse

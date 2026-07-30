@@ -76,6 +76,11 @@ class ChatConversation extends Model
         return $this->hasMany(ChatMessage::class);
     }
 
+    public function latestMessage(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(ChatMessage::class)->latestOfMany();
+    }
+
     public function isMember(User $user): bool
     {
         return $this->activeMembers()
