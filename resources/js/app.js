@@ -1686,6 +1686,10 @@ Alpine.data('chatRealtime', () => ({
     },
 
     selectReply(event) {
+        if (event && typeof event.preventDefault === 'function') {
+            event.preventDefault();
+        }
+
         const target = (event?.currentTarget || event?.target)?.closest?.('.b360-chat-reply-action') || event?.currentTarget;
         if (! target) {
             return;
@@ -1701,15 +1705,26 @@ Alpine.data('chatRealtime', () => ({
 
         this.replyTarget = { id: messageId, sender, body };
 
-        const parentInput = this.$refs.parentMessageInput || this.$refs.composer?.querySelector('input[name="parent_message_id"]');
+        const parentInput = this.$refs.parentMessageInput || this.$refs.composer?.querySelector('[name="parent_message_id"]') || document.querySelector('[name="parent_message_id"]');
         if (parentInput) {
-            parentInput.value = messageId;
+            if (parentInput.tagName === 'SELECT') {
+                let option = parentInput.querySelector(`option[value="${messageId}"]`);
+                if (! option) {
+                    option = document.createElement('option');
+                    option.value = messageId;
+                    option.text = `Replying to ${sender}`;
+                    parentInput.appendChild(option);
+                }
+                parentInput.value = messageId;
+            } else {
+                parentInput.value = messageId;
+            }
         }
 
         this.statusTone = 'info';
         this.statusMessage = `Replying to ${sender}`;
         
-        const textarea = this.$refs.composer?.querySelector('textarea[name="body"]');
+        const textarea = this.$refs.composer?.querySelector('textarea[name="body"]') || document.querySelector('textarea[name="body"]');
         if (textarea) {
             textarea.focus();
         }
@@ -1717,7 +1732,7 @@ Alpine.data('chatRealtime', () => ({
 
     cancelReply() {
         this.replyTarget = null;
-        const parentInput = this.$refs.parentMessageInput || this.$refs.composer?.querySelector('input[name="parent_message_id"]');
+        const parentInput = this.$refs.parentMessageInput || this.$refs.composer?.querySelector('[name="parent_message_id"]') || document.querySelector('[name="parent_message_id"]');
         if (parentInput) {
             parentInput.value = '';
         }
@@ -2066,7 +2081,14 @@ window.submitTimelineAction = function(event) {
 };
 
 window.selectReply = function(event) {
+    if (event && typeof event.preventDefault === 'function') {
+        event.preventDefault();
+    }
     window.getChatComponent()?.selectReply?.(event);
+};
+
+window.cancelReply = function() {
+    window.getChatComponent()?.cancelReply?.();
 };
 
 Alpine.start();
