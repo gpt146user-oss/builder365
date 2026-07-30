@@ -4,28 +4,11 @@ use App\Http\Controllers\Api\AuthApiController;
 use App\Http\Controllers\Api\ChatApiController;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes — Mobile App
-|--------------------------------------------------------------------------
-|
-| These routes are for the Builder360 mobile app.
-| Authentication is handled via Laravel Sanctum (Bearer tokens).
-|
-| Base URL: /api
-|
-*/
 
-// =========================================================================
-// Public routes — No authentication required
-// =========================================================================
 Route::prefix('auth')->name('api.auth.')->group(function (): void {
     Route::post('/login', [AuthApiController::class, 'login'])->name('login');
 });
 
-// =========================================================================
-// Protected routes — Sanctum Bearer token required
-// =========================================================================
 Route::middleware(['auth:sanctum', 'account.active'])->group(function (): void {
 
     // Auth
