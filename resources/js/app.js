@@ -79,7 +79,8 @@ Alpine.data('builderShell', () => ({
 
     init() {
         this.theme = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
-        this.sidebarCollapsed = ! this.isMobile() && this.storageGet(BUILDER_SIDEBAR_KEY) === '1';
+        const storedSidebar = this.storageGet(BUILDER_SIDEBAR_KEY);
+        this.sidebarCollapsed = ! this.isMobile() && (storedSidebar === null || storedSidebar === undefined ? true : storedSidebar === '1');
     },
 
     get navigationClasses() {

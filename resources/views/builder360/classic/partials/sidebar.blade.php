@@ -58,31 +58,51 @@
         display: flex;
         align-items: center;
         gap: 10px;
-        padding: 14px 14px 12px;
+        padding: 12px 14px;
         border-bottom: 1px solid var(--sb-border);
         flex-shrink: 0;
-        min-height: 82px;
+        min-height: 72px;
         overflow: hidden;
     }
-    .b360-brand-icon {
-        width: 36px; height: 36px;
-        border-radius: var(--sb-r-md);
+    .b360-brand-logo-link {
+        display: flex;
+        align-items: center;
+        text-decoration: none;
+        overflow: hidden;
+    }
+    .b360-logo-full {
+        height: 3.5rem;
+        width: auto;
+        max-width: 12rem;
+        object-fit: contain;
+        transition: opacity .2s;
+    }
+    .b360-logo-compact {
+        display: none;
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
         background: linear-gradient(135deg, var(--sb-brand), #818cf8);
-        display: flex; align-items: center; justify-content: center;
-        flex-shrink: 0; color: #fff; font-size: 16px;
-        box-shadow: 0 4px 12px rgba(79,70,229,.28);
-        transition: margin .28s var(--sb-ease);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 800;
+        align-items: center;
+        justify-content: center;
+        letter-spacing: .04em;
+        box-shadow: 0 4px 12px rgba(246,116,12,.28);
+        flex-shrink: 0;
     }
-    body.sidebar-collapsed .b360-brand-icon { margin: 0 auto; }
-
-    .b360-brand-text {
-        flex: 1; min-width: 0; overflow: hidden;
-        white-space: nowrap;
-        opacity: 1; transition: opacity .18s;
+    body.sidebar-collapsed .b360-logo-full {
+        display: none !important;
     }
-    body.sidebar-collapsed .b360-brand-text { opacity: 0; width: 0; pointer-events: none; }
-
-    .b360-brand-title    { font-size: 15px; font-weight: 700; color: var(--sb-text); }
+    body.sidebar-collapsed .b360-logo-compact {
+        display: flex !important;
+        margin: 0 auto;
+    }
+    body.sidebar-collapsed .b360-brand {
+        padding: 12px 6px;
+        justify-content: center;
+    }
     .b360-brand-subtitle {
         font-size: 10.5px; font-weight: 600; color: var(--sb-text-muted);
         text-transform: uppercase; letter-spacing: .08em; margin-top: 1px;
@@ -323,7 +343,12 @@
 
     {{-- Brand --}}
     <div class="b360-brand">
-               <img src="https://build365.arinine.com/Logo1.png" alt="" style="height:4rem;width: 13rem;">
+        <a href="{{ route('builder360.dashboard') }}" class="b360-brand-logo-link" title="Builder365 ERP & CRM">
+            <img src="https://build365.arinine.com/Logo1.png" alt="Builder365 ERP & CRM" class="b360-logo-full">
+            <div class="b360-logo-compact" aria-hidden="true">
+                <span>B365</span>
+            </div>
+        </a>
        
         <button
             class="b360-collapse-btn"
@@ -514,8 +539,9 @@ function retiredSidebarController() {
 
         /* ── Lifecycle ── */
         init() {
-            // Restore persisted state
-            this.sidebarCollapsed = this._storageGet(SIDEBAR_KEY) === '1';
+            // Restore persisted state (defaults to collapsed unless explicitly uncollapsed)
+            const storedState = this._storageGet(SIDEBAR_KEY);
+            this.sidebarCollapsed = storedState === null || storedState === undefined ? true : storedState === '1';
 
             // Apply immediately without a transition so there's no flash on load.
             const sidebar = document.getElementById('b360Sidebar');
