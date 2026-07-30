@@ -35,6 +35,10 @@ window.selectReply = function(event) {
     window.getChatComponent()?.selectReply?.(event);
 };
 
+window.handlePaste = function(event) {
+    window.getChatComponent()?.handlePaste?.(event);
+};
+
 const BUILDER_SIDEBAR_KEY = 'builder360.sidebar.collapsed';
 const BUILDER_SHELL_BREAKPOINT = 860;
 const TASK_WORKSPACE_KEY = 'builder360.task.workspace.open';
@@ -1744,6 +1748,82 @@ Alpine.data('chatRealtime', () => ({
     closeComposerPanel(event) {
         event.currentTarget.closest('details')?.removeAttribute('open');
         this.$refs.composer?.querySelector('textarea[name="body"]')?.focus();
+    },
+
+    handlePaste(event) {
+        const clipboard = event.clipboardData || window.clipboardData;
+        if (! clipboard) {
+            return;
+        }
+
+        const files = [];
+
+        // 1. Check direct clipboard files (File Explorer, Snipping Tool, Desktop, etc.)
+        if (clipboard.files && clipboard.files.length > 0) {
+            Array.from(clipboard.files).forEach((file) => {
+                if (file.type && file.type.startsWith('image/')) {
+                    files.push(file);
+                }
+            });
+        }
+
+        // 2. Check clipboard items (Browser images, Canvas, PrintScreen, Clipboard)
+        if (files.length === 0 && clipboard.items && clipboard.items.length > 0) {
+            Array.from(clipboard.items).forEach((item) => {
+                if (item.type && item.type.startsWith('image/')) {
+                    const file = item.getAsFile();
+                    if (file) {
+                        files.push(file);
+                    }
+                }
+            });
+        }
+
+        if (files.length === 0) {
+            return;
+        }
+
+        if (typeof DataTransfer === 'undefined') {
+            return;
+        }
+
+        // Ensure file input exists in composer form
+        let input = this.$refs.composer?.querySelector('input[type="file"][name="attachments[]"]');
+        if (! input) {
+            input = document.createElement('input');
+            input.type = 'file';
+            input.name = 'attachments[]';
+            input.multiple = true;
+            input.hidden = true;
+            this.$refs.composer?.appendChild(input);
+        }
+
+        const transfer = new DataTransfer();
+        // Preserve any existing attachments
+        Array.from(input.files || []).forEach((f) => transfer.items.add(f));
+
+        let addedCount = 0;
+        files.forEach((file, idx) => {
+            const rawExt = file.type ? file.type.split('/')[1] : 'png';
+            const ext = rawExt ? rawExt.replace('+xml', '').replace('svg', 'png') : 'png';
+            const filename = (file.name && file.name !== 'image.png' && file.name !== 'blob')
+                ? file.name
+                : `pasted-image-${Date.now()}-${idx + 1}.${ext}`;
+
+            const renamedFile = new File([file], filename, { type: file.type || 'image/png' });
+            transfer.items.add(renamedFile);
+            addedCount++;
+        });
+
+        if (addedCount > 0) {
+            input.files = transfer.files;
+            this.selectedAttachments = Array.from(transfer.files).map((file, index) => ({
+                file,
+                name: file.name,
+                size: file.size,
+                key: `${file.name}-${file.size}-${file.lastModified}-${index}`,
+            }));
+        }
     },
 
     selectAttachments(event) {

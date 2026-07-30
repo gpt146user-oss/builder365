@@ -657,9 +657,9 @@
                 @if ($canPost)
                     <footer class="b360-thread-composer">
                         <div class="b360-composer-stack">
-                            <form method="POST" action="{{ route('collaboration.chat.conversations.messages.store', $selectedConversation) }}" enctype="multipart/form-data" class="b360-composer-box" x-ref="composer" x-on:submit.prevent="sendMessage">
+                            <form method="POST" action="{{ route('collaboration.chat.conversations.messages.store', $selectedConversation) }}" enctype="multipart/form-data" class="b360-composer-box" x-ref="composer" x-on:submit.prevent="sendMessage" onpaste="window.handlePaste ? window.handlePaste(event) : null">
                                 @csrf
-                                <textarea name="body" maxlength="10000" placeholder="Write a message…" aria-label="Message" x-on:input="handleComposerInput" x-on:keydown.enter="handleComposerKeydown" x-bind:disabled="busy"></textarea>
+                                <textarea name="body" maxlength="10000" placeholder="Write a message…" aria-label="Message" x-on:input="handleComposerInput" x-on:keydown.enter="handleComposerKeydown" onpaste="window.handlePaste ? window.handlePaste(event) : null" x-bind:disabled="busy"></textarea>
                                 <div class="b360-chat-attachment-selection" x-show="hasSelectedAttachments" x-cloak aria-label="Selected attachments">
                                     <template x-for="attachment in selectedAttachments" x-bind:key="attachment.key">
                                         <span class="b360-chat-selected-file">
