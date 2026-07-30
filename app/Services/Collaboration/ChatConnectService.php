@@ -3,6 +3,7 @@
 namespace App\Services\Collaboration;
 
 use App\Events\Chat\ChatConversationRead;
+use App\Events\Chat\ChatMessageDeleted;
 use App\Events\Chat\ChatMessageSent;
 use App\Events\Chat\ChatPollClosed;
 use App\Events\Chat\ChatPollCreated;
@@ -517,7 +518,7 @@ class ChatConnectService
                 'message_number' => $message->message_number,
             ], $request);
 
-            event(new \App\Events\Chat\ChatMessageDeleted($message->id, $conversation->id, $actor->id));
+            event(new ChatMessageDeleted($message->id, $conversation->id, $actor->id));
 
             return $deleted;
         });
@@ -885,7 +886,10 @@ class ChatConnectService
 
     private function nextMessageNumber(): string
     {
-        return sprintf('CHATMSG-%05d', ChatMessage::query()->count() + 10001);
+        // take random also
+        $chatnumber  = 'CHATMSG' . rand(10000, 99999) .rand(10000, 99999);
+        return $chatnumber;
+        // return sprintf('CHATMSG-%05d', ChatMessage::query()->count() + 10001);
     }
 
     private function storeAttachment(ChatMessage $message, UploadedFile $file, User $actor, string $messageType, int $durationSeconds = 0): ChatMessageAttachment

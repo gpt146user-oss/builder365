@@ -5,6 +5,36 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 
 window.Alpine = Alpine;
 
+window.getChatComponent = function() {
+    const el = document.querySelector('[x-data="chatRealtime"]');
+    if (el && window.Alpine) {
+        return window.Alpine.$data(el);
+    }
+    return null;
+};
+
+window.handleTimelineClick = function(event) {
+    window.getChatComponent()?.handleTimelineClick?.(event);
+};
+
+window.deleteMessage = function(event) {
+    if (event && typeof event.preventDefault === 'function') {
+        event.preventDefault();
+    }
+    window.getChatComponent()?.deleteMessage?.(event);
+};
+
+window.submitTimelineAction = function(event) {
+    if (event && typeof event.preventDefault === 'function') {
+        event.preventDefault();
+    }
+    window.getChatComponent()?.submitTimelineAction?.(event);
+};
+
+window.selectReply = function(event) {
+    window.getChatComponent()?.selectReply?.(event);
+};
+
 const BUILDER_SIDEBAR_KEY = 'builder360.sidebar.collapsed';
 const BUILDER_SHELL_BREAKPOINT = 860;
 const TASK_WORKSPACE_KEY = 'builder360.task.workspace.open';
@@ -1831,17 +1861,30 @@ Alpine.data('chatRealtime', () => ({
     },
 
     async deleteMessage(event) {
-        if (this.busy) {
-            return;
+        if (event && typeof event.preventDefault === 'function') {
+            event.preventDefault();
         }
 
         if (! window.confirm('Are you sure you want to delete this message?')) {
             return;
         }
 
-        const form = event.currentTarget;
-        this.busy = true;
-        this.statusMessage = '';
+        const form = event?.target ? (event.target.tagName === 'FORM' ? event.target : event.target.closest('form')) : (event?.currentTarget || null);
+        if (! form) {
+            return;
+        }
+
+        const article = form.closest('article.b360-thread-message') || form.closest('article');
+        if (article) {
+            article.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+            article.style.opacity = '0';
+            article.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                if (article.parentNode) {
+                    article.remove();
+                }
+            }, 200);
+        }
 
         try {
             await this.request(this.formAction(form), { method: 'POST', body: new FormData(form) });
@@ -1849,8 +1892,7 @@ Alpine.data('chatRealtime', () => ({
         } catch (error) {
             this.statusTone = 'error';
             this.statusMessage = error.message;
-        } finally {
-            this.busy = false;
+            await this.refreshTimeline(false);
         }
     },
 
@@ -2010,10 +2052,16 @@ window.handleTimelineClick = function(event) {
 };
 
 window.deleteMessage = function(event) {
+    if (event && typeof event.preventDefault === 'function') {
+        event.preventDefault();
+    }
     window.getChatComponent()?.deleteMessage?.(event);
 };
 
 window.submitTimelineAction = function(event) {
+    if (event && typeof event.preventDefault === 'function') {
+        event.preventDefault();
+    }
     window.getChatComponent()?.submitTimelineAction?.(event);
 };
 

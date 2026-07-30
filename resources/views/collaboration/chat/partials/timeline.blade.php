@@ -1,4 +1,4 @@
-<div class="b360-thread-timeline" x-ref="timeline" aria-live="polite" x-on:click="handleTimelineClick">
+<div class="b360-thread-timeline" x-ref="timeline" aria-live="polite" onclick="handleTimelineClick(event)">
     @forelse ($chatMessages as $message)
         @php
             $isMine = (int) $message->sender_user_id === (int) auth()->id();
@@ -9,7 +9,7 @@
         <article class="b360-thread-message {{ $isMine ? 'is-mine' : '' }}" data-message-id="{{ $message->id }}">
             <x-ui.user-avatar :user="$message->sender" :label="$message->sender?->name ?? 'System'" class="b360-message-avatar" />
             <div class="b360-message-content">
-         
+          
                 
                 @php
                     $parentMsg = $message->parent ?? ($message->parent_message_id ? \App\Models\ChatMessage::with('sender')->find($message->parent_message_id) : null);
@@ -46,7 +46,7 @@
                     <div class="b360-chat-poll">
                         <strong>{{ $message->poll->question }}</strong>
                         @if ($message->poll->status === 'open')
-                            <form method="POST" action="{{ route('collaboration.chat.polls.votes.store', $message->poll) }}" x-on:submit.prevent="submitTimelineAction">
+                            <form method="POST" action="{{ route('collaboration.chat.polls.votes.store', $message->poll) }}" onsubmit="submitTimelineAction(event)">
                                 @csrf
                                 @foreach ($message->poll->options as $option)
                                     <label>
@@ -58,7 +58,7 @@
                                 <button class="b360-small-btn" type="submit">Vote</button>
                             </form>
                             @if ((int) $message->poll->created_by_user_id === (int) auth()->id())
-                                <form method="POST" action="{{ route('collaboration.chat.polls.close', $message->poll) }}" x-on:submit.prevent="submitTimelineAction">
+                                <form method="POST" action="{{ route('collaboration.chat.polls.close', $message->poll) }}" onsubmit="submitTimelineAction(event)">
                                     @csrf
                                     @method('PATCH')
                                     <button class="b360-small-btn" type="submit">Close poll</button>
@@ -90,12 +90,12 @@
                         data-message-label="{{ $message->message_number }}"
                         data-message-sender="{{ $message->sender?->name ?? 'Message' }}"
                         data-message-body="{{ str($message->body ?? 'Attachment')->squish()->limit(90) }}"
-                        x-on:click="selectReply"
+                        onclick="selectReply(event)"
                         aria-label="Reply to {{ $message->message_number }}"
                         title="Reply"
                     ><i class="fa-solid fa-reply" aria-hidden="true"></i></button>
                     @foreach (['👍', '❤️', '✅'] as $emoji)
-                        <form method="POST" action="{{ route('collaboration.chat.messages.reactions.update', $message) }}" x-on:submit.prevent="submitTimelineAction">
+                        <form method="POST" action="{{ route('collaboration.chat.messages.reactions.update', $message) }}" onsubmit="submitTimelineAction(event)">
                             @csrf
                             @method('PATCH')
                             <input type="hidden" name="emoji" value="{{ $emoji }}">
@@ -104,7 +104,7 @@
                         </form>
                     @endforeach
                     @if ($isMine || (auth()->user()?->hasPermission('*') || ($selectedConversation && $selectedConversation->membershipFor(auth()->user())?->can_manage_members)))
-                        <form method="POST" action="{{ route('collaboration.chat.messages.destroy', $message) }}" x-on:submit.prevent="deleteMessage">
+                        <form method="POST" action="{{ route('collaboration.chat.messages.destroy', $message) }}" onsubmit="deleteMessage(event)">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="b360-chat-delete-action" title="Delete message" aria-label="Delete message" style="background:none; border:none; color:#EF4444; cursor:pointer; padding:2px 5px; opacity:0.7;" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0.7">
