@@ -79,6 +79,21 @@ class WorkTask extends Model
         return $this->belongsTo(User::class, 'assigned_to_user_id');
     }
 
+    public function assignees(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'work_task_assignees', 'work_task_id', 'user_id')->withTimestamps();
+    }
+
+    public function scopeForAssignee($query, $userId)
+    {
+        return $query->where(function ($q) use ($userId) {
+            $q->where('assigned_to_user_id', $userId)
+              ->orWhereHas('assignees', function ($aq) use ($userId) {
+                  $aq->where('users.id', $userId);
+              });
+        });
+    }
+
     public function related(): MorphTo
     {
         return $this->morphTo();

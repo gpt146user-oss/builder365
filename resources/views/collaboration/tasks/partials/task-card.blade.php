@@ -62,9 +62,21 @@
                     {{ $doneChecklist }}/{{ $checklist->count() }}
                 </span>
             @endif
-            <span class="tm-card-owner" title="{{ $task->assignedTo?->name ?? 'Unassigned' }}">
-                {{ strtoupper(substr($task->assignedTo?->name ?? 'U', 0, 1)) }}
-            </span>
+            @php
+                $cardAssignees = $task->assignees->isNotEmpty() ? $task->assignees : collect(array_filter([$task->assignedTo]));
+            @endphp
+            <div style="display:flex; align-items:center; gap:2px;">
+                @forelse($cardAssignees->take(3) as $cardAssignee)
+                    <span class="tm-card-owner" title="{{ $cardAssignee->name }}">
+                        {{ strtoupper(substr($cardAssignee->name, 0, 1)) }}
+                    </span>
+                @empty
+                    <span class="tm-card-owner" title="Unassigned">U</span>
+                @endforelse
+                @if($cardAssignees->count() > 3)
+                    <small style="font-size:10px; font-weight:700; color:var(--tm-text-muted);">+{{ $cardAssignees->count() - 3 }}</small>
+                @endif
+            </div>
         </footer>
     </a>
 

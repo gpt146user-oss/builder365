@@ -29,6 +29,8 @@ class StoreWorkTaskRequest extends FormRequest
             'template_id' => ['nullable', 'string', 'max:80'],
             'description' => ['nullable', 'string', 'max:5000'],
             'assigned_to_user_id' => ['nullable', 'integer', 'exists:users,id'],
+            'assigned_to_user_ids' => ['nullable', 'array', 'max:20'],
+            'assigned_to_user_ids.*' => ['integer', 'exists:users,id'],
             'project_id' => ['nullable', 'integer', 'exists:projects,id'],
             'priority' => ['required', 'string', Rule::in(['low', 'medium', 'high', 'critical'])],
             'due_at' => ['nullable', 'date'],

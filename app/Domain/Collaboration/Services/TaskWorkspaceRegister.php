@@ -156,8 +156,8 @@ final class TaskWorkspaceRegister
         $now = CarbonImmutable::now();
 
         match ($scope) {
-            'mine' => $query->where(fn (Builder $q) => $q->where('created_by_user_id', $user->id)->orWhere('assigned_to_user_id', $user->id)),
-            'assigned-to-me' => $query->where('assigned_to_user_id', $user->id),
+            'mine' => $query->where(fn (Builder $q) => $q->where('created_by_user_id', $user->id)->orWhere('assigned_to_user_id', $user->id)->orWhereHas('assignees', fn ($aq) => $aq->where('users.id', $user->id))),
+            'assigned-to-me' => $query->where(fn (Builder $q) => $q->where('assigned_to_user_id', $user->id)->orWhereHas('assignees', fn ($aq) => $aq->where('users.id', $user->id))),
             'assigned-by-me' => $query->where('created_by_user_id', $user->id),
             'team' => $this->applyTeamScope($query, $user),
             'department' => $this->applyDepartmentScope($query, $user),
@@ -179,7 +179,7 @@ final class TaskWorkspaceRegister
             ->pluck('project_id');
 
         if ($projectIds->isEmpty()) {
-            $query->where(fn (Builder $q) => $q->where('created_by_user_id', $user->id)->orWhere('assigned_to_user_id', $user->id));
+            $query->where(fn (Builder $q) => $q->where('created_by_user_id', $user->id)->orWhere('assigned_to_user_id', $user->id)->orWhereHas('assignees', fn ($aq) => $aq->where('users.id', $user->id)));
             return;
         }
 
@@ -190,7 +190,7 @@ final class TaskWorkspaceRegister
     {
         $department = Employee::query()->where('user_id', $user->id)->value('department');
         if (! $department) {
-            $query->where(fn (Builder $q) => $q->where('created_by_user_id', $user->id)->orWhere('assigned_to_user_id', $user->id));
+            $query->where(fn (Builder $q) => $q->where('created_by_user_id', $user->id)->orWhere('assigned_to_user_id', $user->id)->orWhereHas('assignees', fn ($aq) => $aq->where('users.id', $user->id)));
             return;
         }
 
@@ -200,7 +200,7 @@ final class TaskWorkspaceRegister
             ->whereNotNull('user_id')
             ->pluck('user_id');
 
-        $query->whereIn('assigned_to_user_id', $userIds);
+        $query->where(fn (Builder $q) => $q->whereIn('assigned_to_user_id', $userIds)->orWhereHas('assignees', fn ($aq) => $aq->whereIn('users.id', $userIds)));
     }
 
     /** @param array<string, mixed> $filters */

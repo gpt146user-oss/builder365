@@ -129,7 +129,18 @@
                 @can('reopen', $selectedTask)<div class="tm-meta-block tm-approval-decision"><span>Rejected task</span><form method="POST" action="{{ route('collaboration.tasks.reopen', $selectedTask) }}">@csrf @method('PATCH')<textarea class="tm-textarea" name="note" maxlength="1000" required placeholder="Reason for reopening"></textarea><button class="blade-primary-action" type="submit">Reopen task</button></form></div>@endcan
             @endif
             <div class="tm-meta-block"><span>Owner (assigned by)</span><b class="tm-person-line"><span class="tm-card-owner">{{ strtoupper(substr($selectedTask->createdBy?->name ?? 'U',0,1)) }}</span>{{ $selectedTask->createdBy?->name ?? 'Unknown' }}</b></div>
-            <div class="tm-meta-block tm-assignee-block"><span>Assignee</span><b class="tm-person-line"><span class="tm-card-owner">{{ strtoupper(substr($selectedTask->assignedTo?->name ?? 'U',0,1)) }}</span>{{ $selectedTask->assignedTo?->name ?? 'Unassigned' }}</b>@if($pendingTransfer)<small class="tm-transfer-pending">Transfer pending approval</small>@elseif($selectedTask->assigned_to_user_id)@can('requestTransfer',$selectedTask)<button class="tm-assignee-add" type="button" x-on:click="openTransfer" aria-label="Transfer to another assignee"><i class="fa-solid fa-right-left"></i></button>@endcan @else @can('assign',$selectedTask)<button class="tm-assignee-add" type="button" x-on:click="toggleAssignee" x-bind:aria-expanded="assigneeOpen.toString()" aria-label="Assign task"><i class="fa-solid fa-plus"></i></button>@endcan @endif</div>
+            <div class="tm-meta-block tm-assignee-block">
+                <span>Assignees</span>
+                @php
+                    $allAssignees = $selectedTask->assignees->isNotEmpty() ? $selectedTask->assignees : collect(array_filter([$selectedTask->assignedTo]));
+                @endphp
+                @forelse($allAssignees as $assigneeUser)
+                    <b class="tm-person-line" style="margin-bottom:3px;"><span class="tm-card-owner">{{ strtoupper(substr($assigneeUser->name ?? 'U',0,1)) }}</span>{{ $assigneeUser->name }}</b>
+                @empty
+                    <b class="tm-person-line"><span class="tm-card-owner">U</span>Unassigned</b>
+                @endforelse
+                @if($pendingTransfer)<small class="tm-transfer-pending">Transfer pending approval</small>@elseif($selectedTask->assigned_to_user_id)@can('requestTransfer',$selectedTask)<button class="tm-assignee-add" type="button" x-on:click="openTransfer" aria-label="Transfer to another assignee"><i class="fa-solid fa-right-left"></i></button>@endcan @else @can('assign',$selectedTask)<button class="tm-assignee-add" type="button" x-on:click="toggleAssignee" x-bind:aria-expanded="assigneeOpen.toString()" aria-label="Assign task"><i class="fa-solid fa-plus"></i></button>@endcan @endif
+            </div>
             <div class="tm-meta-block"><span>Timeline</span><div class="tm-timeline-meta"><small>Start</small><b>{{ data_get($selectedTask->metadata,'planned_start_at') ? \Illuminate\Support\Carbon::parse(data_get($selectedTask->metadata,'planned_start_at'))->format('d M Y') : $selectedTask->started_at?->format('d M Y') ?? 'Not started' }}</b><small>Due</small><b>{{ $selectedTask->due_at?->format('d M Y, h:i A') ?? 'No due date' }}</b></div></div>
             <div class="tm-meta-block"><span>Project</span><b>{{ $selectedTask->project?->name ?? 'No project' }}</b></div>
             @if($selectedTask->related_type && $selectedTask->related_id)<div class="tm-meta-block"><span>Linked record</span><b>{{ class_basename($selectedTask->related_type) }} #{{ $selectedTask->related_id }}</b></div>@endif

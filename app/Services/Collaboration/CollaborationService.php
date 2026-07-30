@@ -233,15 +233,31 @@ class CollaborationService
                 }
             }
 
-            $assigneeId = $data['assigned_to_user_id'] ?? $actor->id;
+            $rawAssigneeIds = ! empty($data['assigned_to_user_ids']) && is_array($data['assigned_to_user_ids'])
+                ? $data['assigned_to_user_ids']
+                : [$data['assigned_to_user_id'] ?? null];
 
-            if (! $actor->hasPermission('collaboration.manage') && (int) $assigneeId !== $actor->id) {
-                throw ValidationException::withMessages(['assigned_to_user_id' => 'Self-service users can create tasks only for themselves.']);
+            $assigneeIds = collect($rawAssigneeIds)
+                ->filter()
+                ->map(fn ($id) => (int) $id)
+                ->unique()
+                ->values();
+
+            $primaryAssigneeId = $assigneeIds->first() ?: (int) $actor->id;
+
+            if ($assigneeIds->isEmpty()) {
+                $assigneeIds = collect([$primaryAssigneeId]);
             }
 
-            $assignee = User::query()->whereKey($assigneeId)->firstOrFail();
-            $assigneeCompanyId = $assignee->company_id
-                ?? ((int) $assignee->id === (int) $actor->id ? $this->companyScope->companyIdFor($actor) : null);
+            if (! $actor->hasPermission('collaboration.manage') && $assigneeIds->contains(fn ($id) => $id !== (int) $actor->id)) {
+                throw ValidationException::withMessages(['assigned_to_user_ids' => 'Self-service users can create tasks only for themselves.']);
+            }
+
+            $assignees = User::query()->whereIn('id', $assigneeIds->all())->get();
+            $primaryAssignee = $assignees->firstWhere('id', $primaryAssigneeId) ?: User::query()->whereKey($primaryAssigneeId)->firstOrFail();
+
+            $assigneeCompanyId = $primaryAssignee->company_id
+                ?? ((int) $primaryAssignee->id === (int) $actor->id ? $this->companyScope->companyIdFor($actor) : null);
 
             if (! $this->companyScope->allows($actor, $assigneeCompanyId)) {
                 throw ValidationException::withMessages(['assigned_to_user_id' => 'The assignee must belong to your company.']);
@@ -256,7 +272,7 @@ class CollaborationService
                 }
             }
 
-            $companyId = $this->companyIdForCreation($actor, $assignee, $project, [], $data['company_id'] ?? null);
+            $companyId = $this->companyIdForCreation($actor, $primaryAssignee, $project, [], $data['company_id'] ?? null);
             $template = collect((array) data_get($this->taskSettings->forCompany($companyId), 'templates', []))
                 ->first(fn (array $candidate): bool => isset($data['template_id']) && (string) ($candidate['id'] ?? '') === (string) $data['template_id']);
             if (isset($data['template_id']) && ! $template) {
@@ -269,7 +285,7 @@ class CollaborationService
                 'company_id' => $companyId,
                 'project_id' => $data['project_id'] ?? null,
                 'created_by_user_id' => $actor->id,
-                'assigned_to_user_id' => $assignee->id,
+                'assigned_to_user_id' => $primaryAssignee->id,
                 'task_number' => $this->nextTaskNumber(),
                 'client_token' => $data['client_token'] ?? null,
                 'title' => $data['title'],
@@ -286,6 +302,11 @@ class CollaborationService
                 ],
                 'metadata' => $data['metadata'] ?? [],
             ]);
+
+            // Sync assignees pivot table
+            if (Schema::hasTable('work_task_assignees')) {
+                $task->assignees()->sync($assignees->pluck('id')->all());
+            }
 
             foreach ($templateSteps as $step) {
                 WorkTaskSubtask::query()->create([
@@ -305,19 +326,21 @@ class CollaborationService
                 'collaboration.task.created',
                 'Created collaboration task',
                 $task,
-                ['task_number' => $task->task_number, 'assigned_to' => $assignee->email, 'priority' => $task->priority],
+                ['task_number' => $task->task_number, 'assigned_to' => $assignees->pluck('email')->implode(', '), 'priority' => $task->priority],
                 $request,
             );
 
-            if ($assignee->id !== $actor->id) {
-                $this->notifications->sendToUser($assignee, [
-                    'category' => 'collaboration',
-                    'severity' => $task->priority === 'critical' ? 'critical' : 'info',
-                    'title' => "Task {$task->task_number} assigned",
-                    'body' => $task->title,
-                    'action_url' => '/collaboration/tasks?assigned_to_user_id='.$assignee->id,
-                    'payload' => ['task_number' => $task->task_number, 'priority' => $task->priority],
-                ], $actor, $task);
+            foreach ($assignees as $assigneeUser) {
+                if ($assigneeUser->id !== $actor->id) {
+                    $this->notifications->sendToUser($assigneeUser, [
+                        'category' => 'collaboration',
+                        'severity' => $task->priority === 'critical' ? 'critical' : 'info',
+                        'title' => "Task {$task->task_number} assigned",
+                        'body' => $task->title,
+                        'action_url' => '/collaboration/tasks?assigned_to_user_id='.$assigneeUser->id,
+                        'payload' => ['task_number' => $task->task_number, 'priority' => $task->priority],
+                    ], $actor, $task);
+                }
             }
 
             $this->taskRecurrence->synchronize($task);
@@ -2698,7 +2721,7 @@ class CollaborationService
      */
     public function taskRelations(): array
     {
-        return ['company', 'project', 'createdBy', 'assignedTo', 'attachments.uploadedBy', 'comments.author', 'subtasks.assignedTo', 'subtasks.createdBy', 'timeLogs.user', 'transferRequests.requestedBy', 'transferRequests.fromUser', 'transferRequests.toUser', 'transferRequests.approvedBy', 'completionApprovals.requestedBy', 'completionApprovals.decidedBy', 'recurrenceRule'];
+        return ['company', 'project', 'createdBy', 'assignedTo', 'assignees', 'attachments.uploadedBy', 'comments.author', 'subtasks.assignedTo', 'subtasks.createdBy', 'timeLogs.user', 'transferRequests.requestedBy', 'transferRequests.fromUser', 'transferRequests.toUser', 'transferRequests.approvedBy', 'completionApprovals.requestedBy', 'completionApprovals.decidedBy', 'recurrenceRule'];
     }
 
     private function authorizeTaskAction(User $actor, string $ability, WorkTask $task): void
