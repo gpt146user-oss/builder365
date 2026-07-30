@@ -39,6 +39,22 @@ window.handlePaste = function(event) {
     window.getChatComponent()?.handlePaste?.(event);
 };
 
+window.filterPeople = function(event) {
+    const input = event?.currentTarget || event?.target;
+    if (! input) return;
+
+    const picker = input.closest('.people-search-picker') || input.closest('[x-data="peopleSearch"]') || input.closest('.tm-assignee-overlay');
+    if (! picker) return;
+
+    const query = String(input.value || '').trim().toLowerCase();
+    picker.querySelectorAll('[data-person-search]').forEach((row) => {
+        const haystack = String(row.dataset.personSearch || '').toLowerCase();
+        const matches = query === '' || haystack.includes(query);
+        row.hidden = ! matches;
+        row.style.display = matches ? '' : 'none';
+    });
+};
+
 const BUILDER_SIDEBAR_KEY = 'builder360.sidebar.collapsed';
 const BUILDER_SHELL_BREAKPOINT = 860;
 const TASK_WORKSPACE_KEY = 'builder360.task.workspace.open';
@@ -1399,6 +1415,10 @@ Alpine.data('calendarWorkspace', () => ({
 Alpine.data('peopleSearch', () => ({
     query: '',
     filterPeople(event) {
+        if (window.filterPeople) {
+            window.filterPeople(event);
+            return;
+        }
         this.query = String(event.currentTarget.value || '').trim().toLowerCase();
         this.$root.querySelectorAll('[data-person-search]').forEach((row) => {
             const haystack = String(row.dataset.personSearch || '').toLowerCase();
