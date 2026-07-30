@@ -87,19 +87,6 @@ class ChatApiController extends Controller
         ]);
     }
 
-    /**
-     * POST /api/chat/conversations
-     *
-     * Create a new conversation (direct message, group chat, channel).
-     *
-     * Body params:
-     *   - type            : required, one of the allowed conversation types
-     *   - title           : required for non-DM types
-     *   - description     : optional
-     *   - member_user_ids : required array of user IDs to add
-     *   - body            : optional initial message body
-     *   - priority        : optional (low|normal|high|critical)
-     */
     public function storeConversation(Request $request, CreateChatConversation $action): JsonResponse
     {
         $data = $request->validate([
@@ -114,8 +101,8 @@ class ChatApiController extends Controller
             'project_id'      => ['nullable', 'integer', 'exists:projects,id'],
             'member_user_ids' => ['required', 'array', 'min:1', 'max:25'],
             'member_user_ids.*' => ['required', 'integer', 'distinct', Rule::exists('users', 'id')],
-            'body'            => ['nullable', 'string', 'max:10000'],
-            'priority'        => ['nullable', 'string', Rule::in(['low', 'normal', 'high', 'critical'])],
+            'body'              => ['nullable', 'string', 'max:10000'],
+            'priority'          => ['nullable', 'string', Rule::in(['low', 'normal', 'high', 'critical'])],
         ]);
 
         /** @var User $user */
