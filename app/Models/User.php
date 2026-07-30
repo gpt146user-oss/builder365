@@ -96,4 +96,11 @@ class User extends Authenticatable implements MustVerifyEmail
 
         return in_array('*', $permissions, true) || in_array($permission, $permissions, true);
     }
+
+    public function isDirector(): bool
+    {
+        return $this->hasPermission('*')
+            || in_array($this->role?->slug, ['director', 'system_admin'], true)
+            || str_contains(strtolower((string) $this->role?->name), 'director');
+    }
 }

@@ -22,11 +22,15 @@ class WorkTaskPolicy
             return false;
         }
 
-        if ($user->hasPermission('collaboration.view') || $user->hasPermission('collaboration.manage')) {
+        if ($user->isDirector()) {
             return true;
         }
 
-        return $workTask->created_by_user_id === $user->id || $workTask->assigned_to_user_id === $user->id;
+        $watcherIds = collect(data_get($workTask->metadata, 'watcher_user_ids', []))->map(fn ($id) => (int) $id);
+
+        return (int) $workTask->created_by_user_id === (int) $user->id
+            || (int) $workTask->assigned_to_user_id === (int) $user->id
+            || $watcherIds->contains((int) $user->id);
     }
 
     public function create(User $user): bool
@@ -44,7 +48,16 @@ class WorkTaskPolicy
             return false;
         }
 
-        return $user->hasPermission('collaboration.manage') && $this->sameCompany($user, $workTask) && $workTask->status !== 'completed';
+        if (! $this->sameCompany($user, $workTask) || $workTask->status === 'completed') {
+            return false;
+        }
+
+        if ($user->isDirector()) {
+            return true;
+        }
+
+        return (int) $workTask->created_by_user_id === (int) $user->id
+            || (int) $workTask->assigned_to_user_id === (int) $user->id;
     }
 
     public function requestTransfer(User $user, WorkTask $workTask): bool
@@ -62,9 +75,15 @@ class WorkTaskPolicy
             return false;
         }
 
-        return $user->hasPermission('collaboration.manage')
-            || $workTask->created_by_user_id === $user->id
-            || $workTask->assigned_to_user_id === $user->id;
+        if ($user->isDirector()) {
+            return true;
+        }
+
+        $watcherIds = collect(data_get($workTask->metadata, 'watcher_user_ids', []))->map(fn ($id) => (int) $id);
+
+        return (int) $workTask->created_by_user_id === (int) $user->id
+            || (int) $workTask->assigned_to_user_id === (int) $user->id
+            || $watcherIds->contains((int) $user->id);
     }
 
     public function updateDetails(User $user, WorkTask $workTask): bool
@@ -119,16 +138,19 @@ class WorkTaskPolicy
             return false;
         }
 
-        return $user->hasPermission('collaboration.manage')
-            || $workTask->created_by_user_id === $user->id
-            || $workTask->assigned_to_user_id === $user->id;
+        if ($user->isDirector()) {
+            return true;
+        }
+
+        return (int) $workTask->created_by_user_id === (int) $user->id
+            || (int) $workTask->assigned_to_user_id === (int) $user->id;
     }
 
     public function approveCompletion(User $user, WorkTask $workTask): bool
     {
         return ! $this->isReadOnly($user)
             && $this->sameCompany($user, $workTask)
-            && $user->hasPermission('collaboration.manage');
+            && $user->isDirector();
     }
 
     public function reopen(User $user, WorkTask $workTask): bool

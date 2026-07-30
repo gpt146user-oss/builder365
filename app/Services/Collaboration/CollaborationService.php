@@ -65,11 +65,15 @@ class CollaborationService
 
         $this->companyScope->apply($tasksQuery, $user);
 
+        $isDirector = $user->isDirector();
+
         return $tasksQuery
-            ->when(! $user->hasPermission('collaboration.view') && ! $user->hasPermission('collaboration.manage'), function (Builder $query) use ($user): void {
+            ->when(! $isDirector, function (Builder $query) use ($user): void {
                 $query->where(function (Builder $query) use ($user): void {
                     $query->where('created_by_user_id', $user->id)
-                        ->orWhere('assigned_to_user_id', $user->id);
+                        ->orWhere('assigned_to_user_id', $user->id)
+                        ->orWhereJsonContains('metadata->watcher_user_ids', $user->id)
+                        ->orWhereJsonContains('metadata->watcher_user_ids', (string) $user->id);
                 });
             })
             ->when(isset($filters['status']), fn (Builder $query) => $query->where('status', $filters['status']))
