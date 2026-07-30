@@ -1879,7 +1879,7 @@ Alpine.data('chatRealtime', () => ({
             }
 
             current.innerHTML = incoming.innerHTML;
-            window.Alpine.initTree(current);
+            window.Alpine.initTree(this.$root);
 
             if (forceBottom || nearBottom) {
                 current.scrollTop = current.scrollHeight;
@@ -1996,5 +1996,29 @@ Alpine.data('chatRealtime', () => ({
         window.clearInterval(this.pollTimer);
     },
 }));
+
+window.getChatComponent = function() {
+    const el = document.querySelector('[x-data="chatRealtime"]');
+    if (el && window.Alpine) {
+        return window.Alpine.$data(el);
+    }
+    return null;
+};
+
+window.handleTimelineClick = function(event) {
+    window.getChatComponent()?.handleTimelineClick?.(event);
+};
+
+window.deleteMessage = function(event) {
+    window.getChatComponent()?.deleteMessage?.(event);
+};
+
+window.submitTimelineAction = function(event) {
+    window.getChatComponent()?.submitTimelineAction?.(event);
+};
+
+window.selectReply = function(event) {
+    window.getChatComponent()?.selectReply?.(event);
+};
 
 Alpine.start();
