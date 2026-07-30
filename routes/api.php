@@ -54,6 +54,8 @@ Route::middleware(['auth:sanctum', 'account.active'])->group(function (): void {
         Route::patch('/messages/{message}/reaction', [ChatApiController::class, 'reaction'])->name('messages.reaction');
 
         // Attachments
-        Route::get('/conversations/{conversation}/attachments/{attachment}/download', [ChatApiController::class, 'downloadAttachment'])->name('attachments.download');
+        Route::get('/attachments/{attachment}/download', [ChatApiController::class, 'downloadAttachment'])->name('attachments.download');
+        Route::get('/attachments/{attachment}/preview', [ChatApiController::class, 'previewAttachment'])->name('attachments.preview');
+        Route::get('/conversations/{conversation}/attachments/{attachment}/download', [ChatApiController::class, 'downloadAttachment'])->name('conversations.attachments.download');
     });
 });

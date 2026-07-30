@@ -307,21 +307,25 @@ class ChatApiController extends Controller
     }
 
     /**
-     * GET /api/chat/conversations/{conversation}/attachment/{attachment}/download
+     * GET /api/chat/attachments/{attachment}/download
+     * GET /api/chat/conversations/{conversation}/attachments/{attachment}/download
      *
      * Download a chat attachment (streams the file).
      */
-    public function downloadAttachment(Request $request, ChatConversation $conversation, ChatMessageAttachment $attachment): Response
+    public function downloadAttachment(Request $request, ChatMessageAttachment $attachment): Response
     {
         /** @var User $user */
         $user = $request->user();
-        // Ensure user is member of conversation
-        $this->chat->viewableConversation($user, $conversation->id);
+        $message = $attachment->message()->with('conversation')->first();
+        if ($message?->chat_conversation_id) {
+            $this->chat->viewableConversation($user, $message->chat_conversation_id);
+        }
 
         abort_if($attachment->scan_status === 'blocked', 423, 'This attachment is unavailable.');
-        abort_unless(Storage::disk($attachment->disk)->exists($attachment->path), 404);
+        $disk = $attachment->disk ?: 'local';
+        abort_unless(Storage::disk($disk)->exists($attachment->path), 404);
 
-        return Storage::disk($attachment->disk)->download(
+        return Storage::disk($disk)->download(
             $attachment->path,
             $attachment->original_filename,
             [
@@ -329,6 +333,32 @@ class ChatApiController extends Controller
                 'X-Content-Type-Options' => 'nosniff',
             ]
         );
+    }
+
+    /**
+     * GET /api/chat/attachments/{attachment}/preview
+     *
+     * Preview a chat attachment (inline stream).
+     */
+    public function previewAttachment(Request $request, ChatMessageAttachment $attachment): Response
+    {
+        /** @var User $user */
+        $user = $request->user();
+        $message = $attachment->message()->with('conversation')->first();
+        if ($message?->chat_conversation_id) {
+            $this->chat->viewableConversation($user, $message->chat_conversation_id);
+        }
+
+        abort_if($attachment->scan_status === 'blocked', 423, 'This attachment is unavailable.');
+        $disk = $attachment->disk ?: 'local';
+        abort_unless(Storage::disk($disk)->exists($attachment->path), 404);
+
+        return response(Storage::disk($disk)->get($attachment->path), 200, [
+            'Content-Type' => $attachment->mime_type ?: 'application/octet-stream',
+            'Content-Disposition' => 'inline; filename="'.addslashes($attachment->original_filename).'"',
+            'Cache-Control' => 'private, max-age=300',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     // -------------------------------------------------------------------------

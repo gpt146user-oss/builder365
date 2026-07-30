@@ -36,21 +36,27 @@ class ChatMessageResource extends JsonResource
                 'email' => $this->sender->email,
                 'role' => $this->sender->role?->name,
             ] : null,
-            'attachments' => $this->whenLoaded('attachments', fn () => $this->attachments->map(fn ($attachment): array => [
-                'id' => $attachment->id,
-                'type' => $attachment->type,
-                'filename' => $attachment->original_filename,
-                'mime_type' => $attachment->mime_type,
-                'size_bytes' => $attachment->size_bytes,
-                'size_label' => $this->sizeLabel((int) $attachment->size_bytes),
-                'duration_seconds' => $attachment->duration_seconds,
-                'scan_status' => $attachment->scan_status,
-                'download_url' => route('collaboration.chat.attachments.download', $attachment),
-                'preview_url' => (str_starts_with((string) $attachment->mime_type, 'image/') || str_starts_with((string) $attachment->mime_type, 'audio/'))
-                    ? route('collaboration.chat.attachments.preview', $attachment)
-                    : null,
-                'can_download' => $attachment->scan_status !== 'blocked',
-            ])->values()->all()),
+            'attachments' => $this->whenLoaded('attachments', function () use ($request): array {
+                $isApi = $request->is('api/*') || $request->expectsJson() || $request->bearerToken() !== null;
+
+                return $this->attachments->map(fn ($attachment): array => [
+                    'id' => $attachment->id,
+                    'type' => $attachment->type,
+                    'filename' => $attachment->original_filename,
+                    'mime_type' => $attachment->mime_type,
+                    'size_bytes' => $attachment->size_bytes,
+                    'size_label' => $this->sizeLabel((int) $attachment->size_bytes),
+                    'duration_seconds' => $attachment->duration_seconds,
+                    'scan_status' => $attachment->scan_status,
+                    'download_url' => $isApi
+                        ? route('api.chat.attachments.download', $attachment)
+                        : route('collaboration.chat.attachments.download', $attachment),
+                    'preview_url' => (str_starts_with((string) $attachment->mime_type, 'image/') || str_starts_with((string) $attachment->mime_type, 'audio/'))
+                        ? ($isApi ? route('api.chat.attachments.preview', $attachment) : route('collaboration.chat.attachments.preview', $attachment))
+                        : null,
+                    'can_download' => $attachment->scan_status !== 'blocked',
+                ])->values()->all();
+            }),
             'poll' => $poll ? [
                 'id' => $poll->id,
                 'question' => $poll->question,

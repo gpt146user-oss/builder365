@@ -298,9 +298,10 @@ class CollaborationController extends Controller
         $this->authorize('view', $message->conversation);
 
         abort_if($attachment->scan_status === 'blocked', 423, 'This attachment is unavailable.');
-        abort_unless(Storage::disk($attachment->disk)->exists($attachment->path), 404);
+        $disk = $attachment->disk ?: 'local';
+        abort_unless(Storage::disk($disk)->exists($attachment->path), 404);
 
-        return Storage::disk($attachment->disk)->download(
+        return Storage::disk($disk)->download(
             $attachment->path,
             $attachment->original_filename,
             [
@@ -316,10 +317,11 @@ class CollaborationController extends Controller
         $this->authorize('view', $message->conversation);
 
         abort_if($attachment->scan_status === 'blocked', 423, 'This attachment is unavailable.');
-        abort_unless(str_starts_with((string) $attachment->mime_type, 'image/'), 404);
-        abort_unless(Storage::disk($attachment->disk)->exists($attachment->path), 404);
+        abort_unless(str_starts_with((string) $attachment->mime_type, 'image/') || str_starts_with((string) $attachment->mime_type, 'audio/'), 404);
+        $disk = $attachment->disk ?: 'local';
+        abort_unless(Storage::disk($disk)->exists($attachment->path), 404);
 
-        return response(Storage::disk($attachment->disk)->get($attachment->path), 200, [
+        return response(Storage::disk($disk)->get($attachment->path), 200, [
             'Content-Type' => $attachment->mime_type ?: 'application/octet-stream',
             'Content-Disposition' => 'inline; filename="'.addslashes($attachment->original_filename).'"',
             'Cache-Control' => 'private, max-age=300',
