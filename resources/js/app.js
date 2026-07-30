@@ -43,15 +43,23 @@ window.filterPeople = function(event) {
     const input = event?.currentTarget || event?.target;
     if (! input) return;
 
-    const picker = input.closest('.people-search-picker') || input.closest('[x-data="peopleSearch"]') || input.closest('.tm-assignee-overlay');
+    const picker = input.closest('.people-search-picker') || input.closest('[x-data="peopleSearch"]') || input.closest('.tm-assignee-overlay') || input.closest('fieldset') || input.closest('details');
     if (! picker) return;
 
     const query = String(input.value || '').trim().toLowerCase();
+    const words = query.split(/\s+/).filter(Boolean);
+
     picker.querySelectorAll('[data-person-search]').forEach((row) => {
-        const haystack = String(row.dataset.personSearch || '').toLowerCase();
-        const matches = query === '' || haystack.includes(query);
+        const haystack = String(row.getAttribute('data-person-search') || row.dataset.personSearch || '').toLowerCase();
+        const matches = words.length === 0 || words.every((word) => haystack.includes(word));
         row.hidden = ! matches;
-        row.style.display = matches ? '' : 'none';
+        if (matches) {
+            row.classList.remove('is-hidden');
+            row.style.setProperty('display', '', 'important');
+        } else {
+            row.classList.add('is-hidden');
+            row.style.setProperty('display', 'none', 'important');
+        }
     });
 };
 
